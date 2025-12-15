@@ -1,0 +1,27 @@
+{
+  "name": "workstream-oauth-verification",
+  "version": "1.0.0",
+  "description": "OAuth 2.0 verification server for Authorization Code and Device Authorization flows",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run src/server.ts",
+    "start": "bun run src/server.ts",
+    "start:node": "node --loader ts-node/esm src/server.ts || node --experimental-loader ts-node/esm src/server.ts || tsx src/server.ts",
+    "create-client": "bun run src/scripts/create-client.ts",
+    "test:auth-code": "bun run src/demos/auth-code-flow.ts",
+    "test:device": "bun run src/demos/device-flow.ts"
+  },
+  "keywords": ["oauth2", "ory", "hydra", "verification"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@hono/node-server": "^1.12.0",
+    "hono": "^4.5.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3"
+  }
+}
+
