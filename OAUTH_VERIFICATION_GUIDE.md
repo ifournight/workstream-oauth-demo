@@ -287,7 +287,7 @@ The TypeScript server (`src/server.ts`) provides:
 
 ## Environment Variables
 
-Create a `.env` file (optional, or pass via command line):
+Create a `.env` file from `.env.sample` (optional, or pass via command line):
 
 ```bash
 HYDRA_PUBLIC_URL=https://hydra-public.priv.dev.workstream.is

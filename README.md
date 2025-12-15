@@ -15,7 +15,7 @@ This project provides a TypeScript server and demo scripts to verify OAuth 2.0 f
 
 2. **Configure environment variables:**
    ```bash
-   cp .env.example .env
+   cp .env.sample .env
    # Edit .env with your client credentials
    ```
 
