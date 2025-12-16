@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { renderView } from './controllers/viewController.js';
 
 // Detect runtime and use appropriate server
 // @ts-ignore - Bun global is available at runtime
@@ -14,46 +15,13 @@ const PORT = parseInt(process.env.PORT || '3000', 10);
 const app = new Hono();
 
 // Home page
-app.get('/', (c) => {
-  return c.html(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>OAuth 2.0 Verification Server</title>
-        <style>
-          body { font-family: system-ui, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
-          .card { border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin: 20px 0; }
-          .btn { display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; }
-          .btn:hover { background: #0056b3; }
-          code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; }
-          pre { background: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; }
-        </style>
-      </head>
-      <body>
-        <h1>OAuth 2.0 Verification Server</h1>
-        <p>This server helps verify OAuth 2.0 flows with Ory Hydra.</p>
-        
-        <div class="card">
-          <h2>Authorization Code Flow</h2>
-          <p>Click the button below to start the Authorization Code flow:</p>
-          <a href="/auth" class="btn">Start Authorization Code Flow</a>
-        </div>
-        
-        <div class="card">
-          <h2>Device Authorization Flow</h2>
-          <p>Test the Device Authorization flow:</p>
-          <a href="/device-demo" class="btn">Start Device Flow</a>
-        </div>
-        
-        <div class="card">
-          <h2>Configuration</h2>
-          <p><strong>Hydra Public URL:</strong> <code>${HYDRA_PUBLIC_URL}</code></p>
-          <p><strong>Client ID:</strong> <code>${CLIENT_ID || 'Not set (use env var)'}</code></p>
-          <p><strong>Port:</strong> <code>${PORT}</code></p>
-        </div>
-      </body>
-    </html>
-  `);
+app.get('/', async (c) => {
+  const html = await renderView('home', {
+    hydraPublicUrl: HYDRA_PUBLIC_URL,
+    clientId: CLIENT_ID,
+    port: PORT
+  });
+  return c.html(html);
 });
 
 // Initiate Authorization Code flow
@@ -182,8 +150,16 @@ app.get('/callback', async (c) => {
 
     // Test API call with the access token
     const API_URL = 'https://api.dev.workstream.us/hris/v1/jobs';
-    let apiResult = null;
-    let apiError = null;
+    interface ApiTestResult {
+      status: number;
+      statusText: string;
+      success: boolean;
+      data?: any;
+      error?: string;
+    }
+    
+    let apiResult: ApiTestResult | null = null;
+    let apiError: string | null = null;
     
     try {
       const apiResponse = await fetch(API_URL, {
@@ -263,7 +239,7 @@ app.get('/callback', async (c) => {
   -H 'Content-Type: application/x-www-form-urlencoded' \\
   -d 'grant_type=authorization_code&code=${code}&redirect_uri=${encodeURIComponent(redirectUri)}&client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}'</pre>
           
-          ${apiResult?.success ? `
+          ${apiResult && apiResult.success ? `
           <h2>cURL Command to Test API:</h2>
           <pre>curl -X GET '${API_URL}' \\
   -H 'Authorization: Bearer ${tokenData.access_token}' \\
@@ -460,7 +436,7 @@ app.post('/device/request', async (c) => {
     const data = await response.json();
     
     if (!response.ok) {
-      return c.json({ error: data.error || 'Failed to request device code', ...data }, response.status);
+      return c.json({ error: data.error || 'Failed to request device code', ...data }, response.status as any);
     }
 
     return c.json(data);
@@ -488,7 +464,303 @@ app.post('/device/poll', async (c) => {
     });
 
     const data = await response.json();
-    return c.json(data, response.status);
+      return c.json(data, response.status as any);
+  } catch (error) {
+    return c.json({ error: error instanceof Error ? error.message : 'Unknown error' }, 500);
+  }
+});
+
+// Client Credentials Flow demo page
+app.get('/client-credentials-demo', async (c) => {
+  // Fetch client info to get configured scopes
+  let clientScopes = 'openid offline'; // Default fallback
+  try {
+    if (CLIENT_ID) {
+      const clientResponse = await fetch(`${HYDRA_ADMIN_URL}/admin/clients/${CLIENT_ID}`, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (clientResponse.ok) {
+        const clientData = await clientResponse.json();
+        clientScopes = clientData.scope || 'openid offline';
+      }
+    }
+  } catch (error) {
+    console.warn('[Client Credentials Demo] Could not fetch client scopes, using default:', error);
+  }
+  
+  const html = await renderView('client-credentials-demo', {
+    clientId: CLIENT_ID,
+    clientSecret: CLIENT_SECRET,
+    clientScopes: clientScopes
+  });
+  return c.html(html);
+});
+
+// Client Credentials token endpoint
+app.post('/client-credentials/token', async (c) => {
+  try {
+    const { client_id, client_secret, scope } = await c.req.json();
+    
+    const response = await fetch(`${HYDRA_PUBLIC_URL}/oauth2/token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: client_id || CLIENT_ID,
+        client_secret: client_secret || CLIENT_SECRET,
+        scope: scope || 'openid offline',
+      }),
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      return c.json({ error: data.error || 'Failed to get access token', ...data }, response.status as any);
+    }
+
+    return c.json(data);
+  } catch (error) {
+    return c.json({ error: error instanceof Error ? error.message : 'Unknown error' }, 500);
+  }
+});
+
+// Helper function to decode JWT (without verification, just for inspection)
+function decodeJWT(token: string): any {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      return null;
+    }
+    // Decode the payload (second part)
+    const payload = parts[1];
+    // Add padding if needed
+    const paddedPayload = payload + '='.repeat((4 - payload.length % 4) % 4);
+    const decoded = Buffer.from(paddedPayload, 'base64').toString('utf-8');
+    return JSON.parse(decoded);
+  } catch (error) {
+    console.error('[JWT Decode] Error:', error);
+    return null;
+  }
+}
+
+// Client Credentials API test endpoint
+app.post('/client-credentials/test-api', async (c) => {
+  try {
+    const { access_token } = await c.req.json();
+    
+    if (!access_token) {
+      return c.json({ success: false, error: 'No access token provided' }, 400);
+    }
+
+    // Decode token to inspect its contents
+    const tokenPayload = decodeJWT(access_token);
+    console.log(`[Test API] Token payload:`, JSON.stringify(tokenPayload, null, 2));
+    
+    const API_URL = 'https://api.dev.workstream.us/hris/v1/jobs';
+    
+    console.log(`[Test API] Server-side: Making external API call to ${API_URL}`);
+    console.log(`[Test API] Token scopes: ${tokenPayload?.scp || tokenPayload?.scope || 'N/A'}`);
+    console.log(`[Test API] Token audience: ${JSON.stringify(tokenPayload?.aud || 'N/A')}`);
+    console.log(`[Test API] Token subject: ${tokenPayload?.sub || 'N/A'}`);
+    
+    const startTime = Date.now();
+    const apiResponse = await fetch(API_URL, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${access_token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    const duration = Date.now() - startTime;
+
+    console.log(`[Test API] External API responded: ${apiResponse.status} ${apiResponse.statusText} (took ${duration}ms)`);
+
+    const result: any = {
+      status: apiResponse.status,
+      statusText: apiResponse.statusText,
+      success: apiResponse.ok && apiResponse.status !== 401,
+      apiUrl: API_URL, // Include the external API URL in response
+      requestMethod: 'GET',
+      duration: `${duration}ms`,
+      curlCommand: `curl -X GET "${API_URL}" \\\n  -H "Authorization: Bearer ${access_token}" \\\n  -H "Content-Type: application/json"`,
+      testApiCurlCommand: `curl -X POST "http://localhost:${PORT}/client-credentials/test-api" \\\n  -H "Content-Type: application/json" \\\n  -d '{"access_token":"${access_token}"}'`,
+      tokenInfo: tokenPayload ? {
+        scopes: tokenPayload.scp || tokenPayload.scope || 'N/A',
+        audience: tokenPayload.aud || 'N/A',
+        subject: tokenPayload.sub || 'N/A',
+        clientId: tokenPayload.client_id || 'N/A',
+        expiresAt: tokenPayload.exp ? new Date(tokenPayload.exp * 1000).toISOString() : 'N/A',
+        issuedAt: tokenPayload.iat ? new Date(tokenPayload.iat * 1000).toISOString() : 'N/A',
+      } : null,
+    };
+
+    if (apiResponse.ok) {
+      result.data = await apiResponse.json();
+      console.log(`[Test API] Success! Got data from external API`);
+    } else {
+      const errorText = await apiResponse.text();
+      let errorMsg = apiResponse.status === 401 
+        ? 'Unauthorized (401) - The external API call WAS made successfully, but the API returned 401.' 
+        : `External API call failed with status ${apiResponse.status}`;
+      
+      if (apiResponse.status === 401) {
+        errorMsg += '\n\nPossible reasons:';
+        errorMsg += '\n1. Token scopes may not match what the API requires';
+        errorMsg += '\n2. Token audience may not include the API endpoint';
+        errorMsg += '\n3. API may require additional permissions/claims';
+        errorMsg += `\n\nToken has scopes: ${tokenPayload?.scp || tokenPayload?.scope || 'N/A'}`;
+        errorMsg += `\nToken audience: ${JSON.stringify(tokenPayload?.aud || 'N/A')}`;
+      }
+      
+      result.error = errorMsg;
+      result.errorDetails = errorText;
+      result.errorMessage = `External API (${API_URL}) returned: ${errorText.substring(0, 200)}`;
+      console.log(`[Test API] External API error: ${result.error}`);
+      console.log(`[Test API] Error details: ${errorText.substring(0, 200)}`);
+    }
+
+    return c.json(result);
+  } catch (error) {
+    console.error('[Test API] Exception making external API call:', error);
+    return c.json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error',
+      errorDetails: error instanceof Error ? error.stack : undefined,
+      note: 'This error occurred when the server tried to call the external API. Check server logs for details.'
+    }, 500);
+  }
+});
+
+// Client Management UI
+app.get('/clients', async (c) => {
+  const html = await renderView('clients', {});
+  return c.html(html);
+});
+
+// Removed /clients-old route - using EJS template now
+
+// API: List all clients
+app.get('/api/clients', async (c) => {
+  try {
+    const response = await fetch(`${HYDRA_ADMIN_URL}/admin/clients`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      return c.json({ error: error || 'Failed to fetch clients' }, response.status as any);
+    }
+
+    const clients = await response.json();
+    return c.json(Array.isArray(clients) ? clients : []);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    // Check for certificate/SSL errors
+    if (errorMessage.includes('certificate') || errorMessage.includes('SSL') || errorMessage.includes('TLS')) {
+      return c.json({ 
+        error: 'VPN Connection Required',
+        error_description: 'Unable to connect to Hydra admin endpoint. Please ensure you are connected to the company VPN.',
+        details: errorMessage
+      }, 503);
+    }
+    return c.json({ error: errorMessage }, 500);
+  }
+});
+
+// API: Get single client
+app.get('/api/clients/:id', async (c) => {
+  try {
+    const clientId = c.req.param('id');
+    const response = await fetch(`${HYDRA_ADMIN_URL}/admin/clients/${clientId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      return c.json({ error: error || 'Failed to fetch client' }, response.status as any);
+    }
+
+    const client = await response.json();
+    return c.json(client);
+  } catch (error) {
+    return c.json({ error: error instanceof Error ? error.message : 'Unknown error' }, 500);
+  }
+});
+
+// API: Create client
+app.post('/api/clients', async (c) => {
+  try {
+    const clientData = await c.req.json();
+    
+    const response = await fetch(`${HYDRA_ADMIN_URL}/admin/clients`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(clientData),
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      return c.json({ error: data.error || 'Failed to create client', ...data }, response.status as any);
+    }
+
+    return c.json(data);
+  } catch (error) {
+    return c.json({ error: error instanceof Error ? error.message : 'Unknown error' }, 500);
+  }
+});
+
+// API: Update client
+app.put('/api/clients/:id', async (c) => {
+  try {
+    const clientId = c.req.param('id');
+    const clientData = await c.req.json();
+    
+    const response = await fetch(`${HYDRA_ADMIN_URL}/admin/clients/${clientId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(clientData),
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      return c.json({ error: data.error || 'Failed to update client', ...data }, response.status as any);
+    }
+
+    return c.json(data);
+  } catch (error) {
+    return c.json({ error: error instanceof Error ? error.message : 'Unknown error' }, 500);
+  }
+});
+
+// API: Delete client
+app.delete('/api/clients/:id', async (c) => {
+  try {
+    const clientId = c.req.param('id');
+    
+    const response = await fetch(`${HYDRA_ADMIN_URL}/admin/clients/${clientId}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      return c.json({ error: error || 'Failed to delete client' }, response.status as any);
+    }
+
+    return c.json({ success: true, message: 'Client deleted successfully' });
   } catch (error) {
     return c.json({ error: error instanceof Error ? error.message : 'Unknown error' }, 500);
   }

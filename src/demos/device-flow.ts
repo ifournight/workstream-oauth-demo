@@ -6,11 +6,11 @@
  * It requests device/user codes and polls for tokens.
  */
 
-const HYDRA_PUBLIC_URL = process.env.HYDRA_PUBLIC_URL || 'https://hydra-public.priv.dev.workstream.is';
-const CLIENT_ID = process.env.CLIENT_ID || '';
-const CLIENT_SECRET = process.env.CLIENT_SECRET || '';
+const DEVICE_HYDRA_PUBLIC_URL = process.env.HYDRA_PUBLIC_URL || 'https://hydra-public.priv.dev.workstream.is';
+const DEVICE_CLIENT_ID = process.env.CLIENT_ID || '';
+const DEVICE_CLIENT_SECRET = process.env.CLIENT_SECRET || '';
 
-if (!CLIENT_ID || !CLIENT_SECRET) {
+if (!DEVICE_CLIENT_ID || !DEVICE_CLIENT_SECRET) {
   console.error('❌ Error: CLIENT_ID and CLIENT_SECRET must be set');
   console.error('   Set them as environment variables:');
   console.error('   export CLIENT_ID="your-client-id"');
@@ -20,30 +20,30 @@ if (!CLIENT_ID || !CLIENT_SECRET) {
 
 console.log('📱 Device Authorization Flow Demo\n');
 console.log('Configuration:');
-console.log(`  Hydra URL: ${HYDRA_PUBLIC_URL}`);
-console.log(`  Client ID: ${CLIENT_ID}\n`);
+console.log(`  Hydra URL: ${DEVICE_HYDRA_PUBLIC_URL}`);
+console.log(`  Client ID: ${DEVICE_CLIENT_ID}\n`);
 
 async function requestDeviceCode() {
   console.log('📋 Step 1: Requesting Device and User Codes');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
   
-  const curlCommand = `curl -X POST '${HYDRA_PUBLIC_URL}/oauth2/device/auth' \\
+  const curlCommand = `curl -X POST '${DEVICE_HYDRA_PUBLIC_URL}/oauth2/device/auth' \\
   -H 'Content-Type: application/x-www-form-urlencoded' \\
-  -d 'client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}&scope=openid offline'`;
+  -d 'client_id=${DEVICE_CLIENT_ID}&client_secret=${DEVICE_CLIENT_SECRET}&scope=openid offline'`;
   
   console.log('cURL command:\n');
   console.log(curlCommand);
   console.log('\n');
 
   try {
-    const response = await fetch(`${HYDRA_PUBLIC_URL}/oauth2/device/auth`, {
+    const response = await fetch(`${DEVICE_HYDRA_PUBLIC_URL}/oauth2/device/auth`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
+        client_id: DEVICE_CLIENT_ID,
+        client_secret: DEVICE_CLIENT_SECRET,
         scope: 'openid offline',
       }),
     });
@@ -71,9 +71,9 @@ async function pollForToken(deviceCode: string, interval: number) {
   console.log('📋 Step 2: Polling for Access Token');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
   
-  const curlCommand = `curl -X POST '${HYDRA_PUBLIC_URL}/oauth2/token' \\
+  const curlCommand = `curl -X POST '${DEVICE_HYDRA_PUBLIC_URL}/oauth2/token' \\
   -H 'Content-Type: application/x-www-form-urlencoded' \\
-  -d 'grant_type=urn:ietf:params:oauth:grant-type:device_code&device_code=${deviceCode}&client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}'`;
+  -d 'grant_type=urn:ietf:params:oauth:grant-type:device_code&device_code=${deviceCode}&client_id=${DEVICE_CLIENT_ID}&client_secret=${DEVICE_CLIENT_SECRET}'`;
   
   console.log('cURL command for polling:\n');
   console.log(curlCommand);
@@ -86,7 +86,7 @@ async function pollForToken(deviceCode: string, interval: number) {
 
   while (pollCount < maxPolls) {
     try {
-      const response = await fetch(`${HYDRA_PUBLIC_URL}/oauth2/token`, {
+      const response = await fetch(`${DEVICE_HYDRA_PUBLIC_URL}/oauth2/token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -94,8 +94,8 @@ async function pollForToken(deviceCode: string, interval: number) {
         body: new URLSearchParams({
           grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
           device_code: deviceCode,
-          client_id: CLIENT_ID,
-          client_secret: CLIENT_SECRET,
+          client_id: DEVICE_CLIENT_ID,
+          client_secret: DEVICE_CLIENT_SECRET,
         }),
       });
 
@@ -131,7 +131,7 @@ async function pollForToken(deviceCode: string, interval: number) {
   process.exit(1);
 }
 
-async function main() {
+async function deviceFlowMain() {
   const deviceData = await requestDeviceCode();
   
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
@@ -147,5 +147,5 @@ async function main() {
   console.log('\n✅ Device Authorization Flow completed successfully!\n');
 }
 
-main().catch(console.error);
+deviceFlowMain().catch(console.error);
 

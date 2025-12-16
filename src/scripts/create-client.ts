@@ -9,36 +9,39 @@
  *   HYDRA_ADMIN_URL=https://hydra-admin.priv.dev.workstream.is bun run src/scripts/create-client.ts
  */
 
-const HYDRA_ADMIN_URL = process.env.HYDRA_ADMIN_URL || 'https://hydra-admin.priv.dev.workstream.is';
-const REDIRECT_URI = process.env.REDIRECT_URI || 'http://localhost:3000/callback';
+export {};
 
-const clientConfig = {
+const CREATE_HYDRA_ADMIN_URL = process.env.HYDRA_ADMIN_URL || 'https://hydra-admin.priv.dev.workstream.is';
+const CREATE_REDIRECT_URI = process.env.REDIRECT_URI || 'http://localhost:3000/callback';
+
+const createClientConfig = {
   client_name: 'Workstream OAuth Demo Client',
   grant_types: [
     'authorization_code',
-    'urn:ietf:params:oauth:grant-type:device_code'
+    'urn:ietf:params:oauth:grant-type:device_code',
+    'client_credentials'
   ],
   response_types: ['code'],
   scope: 'openid offline',
-  redirect_uris: [REDIRECT_URI],
+  redirect_uris: [CREATE_REDIRECT_URI],
   token_endpoint_auth_method: 'client_secret_post'
 };
 
 console.log('🔐 Creating OAuth2 Client in Ory Hydra\n');
 console.log('Configuration:');
-console.log(`  Admin URL: ${HYDRA_ADMIN_URL}`);
-console.log(`  Redirect URI: ${REDIRECT_URI}\n`);
+console.log(`  Admin URL: ${CREATE_HYDRA_ADMIN_URL}`);
+console.log(`  Redirect URI: ${CREATE_REDIRECT_URI}\n`);
 console.log('Client Config:');
-console.log(JSON.stringify(clientConfig, null, 2));
+console.log(JSON.stringify(createClientConfig, null, 2));
 console.log('\n');
 
 try {
-  const response = await fetch(`${HYDRA_ADMIN_URL}/admin/clients`, {
+  const response = await fetch(`${CREATE_HYDRA_ADMIN_URL}/admin/clients`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(clientConfig),
+    body: JSON.stringify(createClientConfig),
   });
 
   if (!response.ok) {
@@ -56,10 +59,10 @@ try {
   console.log('📋 Client Details:\n');
   console.log(`  Client ID:     ${client.client_id}`);
   console.log(`  Client Secret: ${client.client_secret || 'N/A'}`);
-  console.log(`  Client Name:   ${client.client_name || clientConfig.client_name}`);
-  console.log(`  Grant Types:   ${client.grant_types?.join(', ') || clientConfig.grant_types.join(', ')}`);
-  console.log(`  Redirect URIs: ${client.redirect_uris?.join(', ') || clientConfig.redirect_uris.join(', ')}`);
-  console.log(`  Scopes:        ${client.scope || clientConfig.scope}\n`);
+  console.log(`  Client Name:   ${client.client_name || createClientConfig.client_name}`);
+  console.log(`  Grant Types:   ${client.grant_types?.join(', ') || createClientConfig.grant_types.join(', ')}`);
+  console.log(`  Redirect URIs: ${client.redirect_uris?.join(', ') || createClientConfig.redirect_uris.join(', ')}`);
+  console.log(`  Scopes:        ${client.scope || createClientConfig.scope}\n`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
   console.log('💡 Next Steps:\n');
   console.log('1. Update your .env file with these credentials:');

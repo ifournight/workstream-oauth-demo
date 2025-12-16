@@ -8,20 +8,23 @@
     "start": "bun run src/server.ts",
     "start:node": "node --loader ts-node/esm src/server.ts || node --experimental-loader ts-node/esm src/server.ts || tsx src/server.ts",
     "create-client": "bun run src/scripts/create-client.ts",
+    "update-client": "bun run src/scripts/update-client.ts",
     "test:auth-code": "bun run src/demos/auth-code-flow.ts",
-    "test:device": "bun run src/demos/device-flow.ts"
+    "test:device": "bun run src/demos/device-flow.ts",
+    "test:client-credentials": "bun run src/demos/client-credentials-flow.ts"
   },
   "keywords": ["oauth2", "ory", "hydra", "verification"],
   "author": "",
   "license": "MIT",
   "dependencies": {
     "@hono/node-server": "^1.12.0",
+    "ejs": "^3.1.10",
     "hono": "^4.5.0"
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "@types/ejs": "^3.1.5",
     "@types/node": "^20.11.0",
     "typescript": "^5.3.3"
   }
 }
-

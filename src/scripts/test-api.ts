@@ -10,13 +10,15 @@
  *   bun run src/scripts/test-api.ts
  */
 
-const HYDRA_PUBLIC_URL = process.env.HYDRA_PUBLIC_URL || 'https://hydra-public.priv.dev.workstream.is';
-const CLIENT_ID = process.env.CLIENT_ID || '';
-const CLIENT_SECRET = process.env.CLIENT_SECRET || '';
-const REDIRECT_URI = process.env.REDIRECT_URI || 'http://localhost:3000/callback';
-const API_URL = 'https://api.dev.workstream.us/hris/v1/jobs';
+export {};
 
-if (!CLIENT_ID || !CLIENT_SECRET) {
+const TEST_HYDRA_PUBLIC_URL = process.env.HYDRA_PUBLIC_URL || 'https://hydra-public.priv.dev.workstream.is';
+const TEST_CLIENT_ID = process.env.CLIENT_ID || '';
+const TEST_CLIENT_SECRET = process.env.CLIENT_SECRET || '';
+const TEST_REDIRECT_URI = process.env.REDIRECT_URI || 'http://localhost:3000/callback';
+const TEST_API_URL = 'https://api.dev.workstream.us/hris/v1/jobs';
+
+if (!TEST_CLIENT_ID || !TEST_CLIENT_SECRET) {
   console.error('❌ Error: CLIENT_ID and CLIENT_SECRET must be set');
   console.error('   Make sure your .env file is configured');
   process.exit(1);
@@ -24,26 +26,26 @@ if (!CLIENT_ID || !CLIENT_SECRET) {
 
 console.log('🔐 OAuth Flow Test - Getting Access Token\n');
 console.log('Configuration:');
-console.log(`  Client ID: ${CLIENT_ID}`);
-console.log(`  Hydra URL: ${HYDRA_PUBLIC_URL}`);
-console.log(`  API URL: ${API_URL}\n`);
+console.log(`  Client ID: ${TEST_CLIENT_ID}`);
+console.log(`  Hydra URL: ${TEST_HYDRA_PUBLIC_URL}`);
+console.log(`  API URL: ${TEST_API_URL}\n`);
 
 // Step 1: Get authorization URL
-const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-const scope = 'openid offline';
-const authUrl = `${HYDRA_PUBLIC_URL}/oauth2/auth?` +
-  `client_id=${encodeURIComponent(CLIENT_ID)}&` +
+const testState = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+const testScope = 'openid offline';
+const testAuthUrl = `${TEST_HYDRA_PUBLIC_URL}/oauth2/auth?` +
+  `client_id=${encodeURIComponent(TEST_CLIENT_ID)}&` +
   `response_type=code&` +
-  `scope=${encodeURIComponent(scope)}&` +
-  `redirect_uri=${encodeURIComponent(REDIRECT_URI)}&` +
-  `state=${state}`;
+  `scope=${encodeURIComponent(testScope)}&` +
+  `redirect_uri=${encodeURIComponent(TEST_REDIRECT_URI)}&` +
+  `state=${testState}`;
 
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 console.log('📋 Step 1: Authorization Request\n');
 console.log('Visit this URL in your browser to authorize:');
-console.log(`\n${authUrl}\n`);
+console.log(`\n${testAuthUrl}\n`);
 console.log('After authorization, you will be redirected to:');
-console.log(`${REDIRECT_URI}?code=AUTHORIZATION_CODE&state=${state}\n`);
+console.log(`${TEST_REDIRECT_URI}?code=AUTHORIZATION_CODE&state=${testState}\n`);
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
 // Wait for user input
@@ -61,7 +63,7 @@ if (authCode) {
   console.log('📋 Step 2: Exchange Authorization Code for Access Token\n');
   
   try {
-    const tokenResponse = await fetch(`${HYDRA_PUBLIC_URL}/oauth2/token`, {
+    const tokenResponse = await fetch(`${TEST_HYDRA_PUBLIC_URL}/oauth2/token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -69,9 +71,9 @@ if (authCode) {
       body: new URLSearchParams({
         grant_type: 'authorization_code',
         code: authCode,
-        redirect_uri: REDIRECT_URI,
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
+        redirect_uri: TEST_REDIRECT_URI,
+        client_id: TEST_CLIENT_ID,
+        client_secret: TEST_CLIENT_SECRET,
       }),
     });
 
@@ -96,9 +98,9 @@ if (authCode) {
     // Step 3: Call the API
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
     console.log('📋 Step 3: Calling Workstream API\n');
-    console.log(`GET ${API_URL}\n`);
+    console.log(`GET ${TEST_API_URL}\n`);
 
-    const apiResponse = await fetch(API_URL, {
+    const apiResponse = await fetch(TEST_API_URL, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${tokenData.access_token}`,

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>OAuth 2.0 Verification Server</title>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+      .card { border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin: 20px 0; }
+      .btn { display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; }
+      .btn:hover { background: #0056b3; }
+      code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; }
+      pre { background: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; }
+    </style>
+  </head>
+  <body>
+    <h1>OAuth 2.0 Verification Server</h1>
+    <p>This server helps verify OAuth 2.0 flows with Ory Hydra.</p>
+    
+    <div class="card">
+      <h2>Authorization Code Flow</h2>
+      <p>Click the button below to start the Authorization Code flow:</p>
+      <a href="/auth" class="btn">Start Authorization Code Flow</a>
+    </div>
+    
+    <div class="card">
+      <h2>Device Authorization Flow</h2>
+      <p>Test the Device Authorization flow:</p>
+      <a href="/device-demo" class="btn">Start Device Flow</a>
+    </div>
+    
+    <div class="card">
+      <h2>Client Credentials Flow</h2>
+      <p>Machine-to-machine flow (no user interaction):</p>
+      <a href="/client-credentials-demo" class="btn">Start Client Credentials Flow</a>
+    </div>
+    
+    <div class="card">
+      <h2>Client Management</h2>
+      <p>Manage OAuth clients (Create, Read, Update, Delete):</p>
+      <a href="/clients" class="btn">Manage Clients</a>
+    </div>
+    
+    <div class="card">
+      <h2>Configuration</h2>
+      <p><strong>Hydra Public URL:</strong> <code><%= hydraPublicUrl %></code></p>
+      <p><strong>Client ID:</strong> <code><%= clientId || 'Not set (use env var)' %></code></p>
+      <p><strong>Port:</strong> <code><%= port %></code></p>
+    </div>
+  </body>
+</html>
+
