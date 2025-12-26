@@ -1,9 +1,32 @@
 import { Hono } from 'hono';
 import { renderView } from './controllers/viewController.js';
+import { createHash, randomBytes } from 'crypto';
 
 // Detect runtime and use appropriate server
 // @ts-ignore - Bun global is available at runtime
 const isBun = typeof Bun !== 'undefined';
+
+// PKCE helper functions
+function generateCodeVerifier(): string {
+  // Generate a random 43-128 character URL-safe string
+  const length = 43 + Math.floor(Math.random() * 86); // 43-128 characters
+  const bytes = randomBytes(length);
+  // Convert to base64url (RFC 7636)
+  return bytes.toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '')
+    .substring(0, length);
+}
+
+function generateCodeChallenge(verifier: string): string {
+  // SHA256 hash of verifier, then base64url encode
+  const hash = createHash('sha256').update(verifier).digest();
+  return hash.toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+}
 
 // Configuration
 const HYDRA_PUBLIC_URL = process.env.HYDRA_PUBLIC_URL || 'https://hydra-public.priv.dev.workstream.is';
@@ -13,6 +36,20 @@ const CLIENT_SECRET = process.env.CLIENT_SECRET || '';
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
 const app = new Hono();
+
+// In-memory storage for OAuth state and code_verifier (for PKCE)
+// In production, use Redis or a proper session store
+const oauthStateStore = new Map<string, { state: string; codeVerifier: string; expiresAt: number }>();
+
+// Clean up expired entries every 10 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of oauthStateStore.entries()) {
+    if (value.expiresAt < now) {
+      oauthStateStore.delete(key);
+    }
+  }
+}, 10 * 60 * 1000);
 
 // Home page
 app.get('/', async (c) => {
@@ -36,18 +73,30 @@ app.get('/auth', (c) => {
     const host = c.req.header('host') || `localhost:${PORT}`;
     const redirectUri = `${protocol}://${host}/callback`;
     
+    // Generate PKCE parameters
+    const codeVerifier = generateCodeVerifier();
+    const codeChallenge = generateCodeChallenge(codeVerifier);
+    
     const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     const scope = 'openid offline';
+    
+    // Store state and code_verifier in memory (expires in 10 minutes)
+    const expiresAt = Date.now() + 10 * 60 * 1000;
+    oauthStateStore.set(state, { state, codeVerifier, expiresAt });
     
     const authUrl = `${HYDRA_PUBLIC_URL}/oauth2/auth?` +
       `client_id=${encodeURIComponent(CLIENT_ID)}&` +
       `response_type=code&` +
       `scope=${encodeURIComponent(scope)}&` +
       `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-      `state=${state}`;
+      `state=${state}&` +
+      `prompt=consent&` +
+      `code_challenge=${encodeURIComponent(codeChallenge)}&` +
+      `code_challenge_method=S256`;
 
-    // Store state in cookie for verification
-    c.header('Set-Cookie', `oauth_state=${state}; HttpOnly; Max-Age=600; Path=/`);
+    // Also set cookie as backup (for debugging)
+    const cookieOptions = 'HttpOnly; Max-Age=600; Path=/; SameSite=Lax';
+    c.header('Set-Cookie', `oauth_state=${state}; ${cookieOptions}`);
     
     return c.redirect(authUrl);
   } catch (error) {
@@ -62,10 +111,20 @@ app.get('/callback', async (c) => {
   const state = c.req.query('state');
   const error = c.req.query('error');
   
-  // Get state from cookie
-  const cookieHeader = c.req.header('Cookie') || '';
-  const stateMatch = cookieHeader.match(/oauth_state=([^;]+)/);
-  const storedState = stateMatch ? stateMatch[1] : null;
+  // Get state and code_verifier from memory store
+  const storedData = state ? oauthStateStore.get(state) : null;
+  const storedState = storedData?.state || null;
+  const codeVerifier = storedData?.codeVerifier || null;
+  
+  // Clean up after use
+  if (state) {
+    oauthStateStore.delete(state);
+  }
+  
+  // Debug logging
+  console.log('[Callback] Received state:', state);
+  console.log('[Callback] Stored state:', storedState);
+  console.log('[Callback] Code verifier present:', !!codeVerifier);
 
   if (error) {
     return c.html(`
@@ -98,13 +157,35 @@ app.get('/callback', async (c) => {
 
   // Verify state (basic CSRF protection)
   if (state !== storedState) {
+    console.error('[Callback] State mismatch!');
+    console.error('  Received state:', state);
+    console.error('  Stored state:', storedState);
+    console.error('  State match:', state === storedState);
     return c.html(`
       <!DOCTYPE html>
       <html>
         <head><title>OAuth Error</title></head>
         <body>
           <h1>State Mismatch</h1>
-          <p>State parameter does not match. Possible CSRF attack.</p>
+          <p>State parameter does not match. Possible CSRF attack or expired session.</p>
+          <p><strong>Received state:</strong> ${state || 'null'}</p>
+          <p><strong>Stored state:</strong> ${storedState || 'null (not found in store)'}</p>
+          <p><strong>Store size:</strong> ${oauthStateStore.size} entries</p>
+          <a href="/">← Back to Home</a>
+        </body>
+      </html>
+    `);
+  }
+
+  // Verify code_verifier is present (required for PKCE)
+  if (!codeVerifier) {
+    return c.html(`
+      <!DOCTYPE html>
+      <html>
+        <head><title>OAuth Error</title></head>
+        <body>
+          <h1>PKCE Error</h1>
+          <p>Code verifier is missing. Please restart the authorization flow.</p>
           <a href="/">← Back to Home</a>
         </body>
       </html>
@@ -118,18 +199,25 @@ app.get('/callback', async (c) => {
   const redirectUri = `${protocol}://${host}/callback`;
   
   try {
+    // Add audience parameter to ensure token is valid for local API
+    const audience = 'http://localhost:3392';
+    
+    const tokenParams: Record<string, string> = {
+      grant_type: 'authorization_code',
+      code: code,
+      redirect_uri: redirectUri,
+      client_id: CLIENT_ID,
+      client_secret: CLIENT_SECRET,
+      code_verifier: codeVerifier, // PKCE: include code_verifier
+      audience: audience, // Specify audience for local API server
+    };
+    
     const tokenResponse = await fetch(`${HYDRA_PUBLIC_URL}/oauth2/token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        code: code,
-        redirect_uri: redirectUri,
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
-      }),
+      body: new URLSearchParams(tokenParams),
     });
 
     const tokenData = await tokenResponse.json();
@@ -149,7 +237,7 @@ app.get('/callback', async (c) => {
     }
 
     // Test API call with the access token
-    const API_URL = 'https://api.dev.workstream.us/hris/v1/jobs';
+    const API_URL = 'http://localhost:3392/v2/public/managers/time_entries?startDate=2025-12-22&endDate=2025-12-29&locationIds%5B0%5D=b6f3d953-5ce1-4395-9c25-080b451168fa&statuses%5B0%5D=ended&statuses%5B1%5D=approved&statuses%5B2%5D=started&sortField=clockIn&sortOrder=desc&limit=50';
     interface ApiTestResult {
       status: number;
       statusText: string;
@@ -167,6 +255,7 @@ app.get('/callback', async (c) => {
         headers: {
           'Authorization': `Bearer ${tokenData.access_token}`,
           'Content-Type': 'application/json',
+          'x-core-company-id': 'e71a903f-ff7d-42f2-b0f4-504ddc604ec5',
         },
       });
       
@@ -211,7 +300,7 @@ app.get('/callback', async (c) => {
           <pre>${JSON.stringify(tokenData, null, 2)}</pre>
           
           <h2>API Test Result:</h2>
-          <div class="api-test ${apiResult?.success ? 'success' : apiError ? 'error' : 'error'}">
+          <div class="api-test ${apiResult?.success ? 'success' : apiError ? 'error' : 'error'}" id="apiTestResult">
             ${apiError ? `
               <h3 class="error">❌ API Test Failed</h3>
               <p><strong>Error:</strong> ${apiError}</p>
@@ -230,6 +319,67 @@ app.get('/callback', async (c) => {
               `}
             ` : '<p>API test not performed</p>'}
           </div>
+          <button onclick="retestAPI()" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px;">🔄 Retest API</button>
+          <div id="retestResult" style="margin-top: 15px;"></div>
+          
+          <script>
+            const accessToken = ${JSON.stringify(tokenData.access_token)};
+            
+            async function retestAPI() {
+              const resultDiv = document.getElementById('retestResult');
+              const testResultDiv = document.getElementById('apiTestResult');
+              resultDiv.innerHTML = '<p>Testing API...</p>';
+              testResultDiv.className = 'api-test pending';
+              testResultDiv.innerHTML = '<p>Testing API...</p>';
+              
+              try {
+                const response = await fetch('/api/test', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ access_token: accessToken })
+                });
+                
+                const result = await response.json();
+                
+                testResultDiv.className = 'api-test ' + (result.success ? 'success' : 'error');
+                testResultDiv.innerHTML = \`
+                  <h3 class="\${result.success ? 'success' : 'error'}">\${result.success ? '✅' : '❌'} API Test \${result.success ? 'Successful' : 'Failed'}</h3>
+                  <p><strong>Status:</strong> \${result.status} \${result.statusText}</p>
+                  <p><strong>Duration:</strong> \${result.duration}</p>
+                  \${result.tokenInfo ? \`
+                    <details>
+                      <summary>Token Info</summary>
+                      <pre>\${JSON.stringify(result.tokenInfo, null, 2)}</pre>
+                    </details>
+                  \` : ''}
+                  \${result.success ? \`
+                    <p><strong>Result:</strong> Authentication is working! The access token is valid.</p>
+                    <details>
+                      <summary>API Response Data</summary>
+                      <pre>\${JSON.stringify(result.data, null, 2)}</pre>
+                    </details>
+                  \` : \`
+                    <p><strong>Error:</strong> \${result.error || 'API call failed'}</p>
+                    \${result.errorDetails ? \`<pre>\${result.errorDetails}</pre>\` : ''}
+                    \${result.curlCommand ? \`
+                      <details>
+                        <summary>cURL Command</summary>
+                        <pre>\${result.curlCommand}</pre>
+                      </details>
+                    \` : ''}
+                  \`}
+                \`;
+                
+                resultDiv.innerHTML = result.success 
+                  ? '<p style="color: #28a745;">✅ API test completed!</p>'
+                  : '<p style="color: #dc3545;">❌ API test failed. See details above.</p>';
+              } catch (error) {
+                testResultDiv.className = 'api-test error';
+                testResultDiv.innerHTML = \`<h3 class="error">❌ API Test Error</h3><p>\${error.message}</p>\`;
+                resultDiv.innerHTML = '<p style="color: #dc3545;">Error: ' + error.message + '</p>';
+              }
+            }
+          </script>
           
           <h2>Authorization Code:</h2>
           <pre>${code}</pre>
@@ -243,7 +393,8 @@ app.get('/callback', async (c) => {
           <h2>cURL Command to Test API:</h2>
           <pre>curl -X GET '${API_URL}' \\
   -H 'Authorization: Bearer ${tokenData.access_token}' \\
-  -H 'Content-Type: application/json'</pre>
+  -H 'Content-Type: application/json' \\
+  -H 'x-core-company-id: e71a903f-ff7d-42f2-b0f4-504ddc604ec5'</pre>
           ` : ''}
           
           <a href="/" class="btn">← Back to Home</a>
@@ -545,6 +696,80 @@ function decodeJWT(token: string): any {
   }
 }
 
+// Generic API test endpoint (for Authorization Code flow and others)
+app.post('/api/test', async (c) => {
+  try {
+    const { access_token } = await c.req.json();
+    
+    if (!access_token) {
+      return c.json({ success: false, error: 'No access token provided' }, 400);
+    }
+
+    // Decode token to inspect its contents
+    const tokenPayload = decodeJWT(access_token);
+    console.log(`[Test API] Token payload:`, JSON.stringify(tokenPayload, null, 2));
+    
+    const API_URL = 'https://api.dev.workstream.us/hris/v1/jobs';
+    
+    console.log(`[Test API] Server-side: Making external API call to ${API_URL}`);
+    console.log(`[Test API] Token scopes: ${tokenPayload?.scp || tokenPayload?.scope || 'N/A'}`);
+    console.log(`[Test API] Token audience: ${JSON.stringify(tokenPayload?.aud || 'N/A')}`);
+    console.log(`[Test API] Token subject: ${tokenPayload?.sub || 'N/A'}`);
+    
+    const startTime = Date.now();
+    const apiResponse = await fetch(API_URL, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${access_token}`,
+        'Content-Type': 'application/json',
+        'x-core-company-id': 'e71a903f-ff7d-42f2-b0f4-504ddc604ec5',
+      },
+    });
+    const duration = Date.now() - startTime;
+
+    console.log(`[Test API] External API responded: ${apiResponse.status} ${apiResponse.statusText} (took ${duration}ms)`);
+
+    const result: any = {
+      status: apiResponse.status,
+      statusText: apiResponse.statusText,
+      success: apiResponse.ok && apiResponse.status !== 401,
+      apiUrl: API_URL,
+      requestMethod: 'GET',
+      duration: `${duration}ms`,
+      curlCommand: `curl -X GET "${API_URL}" \\\n  -H "Authorization: Bearer ${access_token}" \\\n  -H "Content-Type: application/json" \\\n  -H "x-core-company-id: e71a903f-ff7d-42f2-b0f4-504ddc604ec5"`,
+      tokenInfo: tokenPayload ? {
+        scopes: tokenPayload.scp || tokenPayload.scope || 'N/A',
+        audience: tokenPayload.aud || 'N/A',
+        subject: tokenPayload.sub || 'N/A',
+        clientId: tokenPayload.client_id || 'N/A',
+        expiresAt: tokenPayload.exp ? new Date(tokenPayload.exp * 1000).toISOString() : 'N/A',
+        issuedAt: tokenPayload.iat ? new Date(tokenPayload.iat * 1000).toISOString() : 'N/A',
+      } : null,
+    };
+
+    if (apiResponse.ok) {
+      try {
+        result.data = await apiResponse.json();
+      } catch (e) {
+        result.data = await apiResponse.text();
+      }
+    } else {
+      try {
+        result.error = await apiResponse.text();
+      } catch (e) {
+        result.error = `Failed to read error response: ${e instanceof Error ? e.message : 'Unknown error'}`;
+      }
+    }
+
+    return c.json(result);
+  } catch (error) {
+    return c.json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    }, 500);
+  }
+});
+
 // Client Credentials API test endpoint
 app.post('/client-credentials/test-api', async (c) => {
   try {
@@ -571,6 +796,7 @@ app.post('/client-credentials/test-api', async (c) => {
       headers: {
         'Authorization': `Bearer ${access_token}`,
         'Content-Type': 'application/json',
+        'x-core-company-id': 'e71a903f-ff7d-42f2-b0f4-504ddc604ec5',
       },
     });
     const duration = Date.now() - startTime;
@@ -584,7 +810,7 @@ app.post('/client-credentials/test-api', async (c) => {
       apiUrl: API_URL, // Include the external API URL in response
       requestMethod: 'GET',
       duration: `${duration}ms`,
-      curlCommand: `curl -X GET "${API_URL}" \\\n  -H "Authorization: Bearer ${access_token}" \\\n  -H "Content-Type: application/json"`,
+      curlCommand: `curl -X GET "${API_URL}" \\\n  -H "Authorization: Bearer ${access_token}" \\\n  -H "Content-Type: application/json" \\\n  -H "x-core-company-id: e71a903f-ff7d-42f2-b0f4-504ddc604ec5"`,
       testApiCurlCommand: `curl -X POST "http://localhost:${PORT}/client-credentials/test-api" \\\n  -H "Content-Type: application/json" \\\n  -d '{"access_token":"${access_token}"}'`,
       tokenInfo: tokenPayload ? {
         scopes: tokenPayload.scp || tokenPayload.scope || 'N/A',
