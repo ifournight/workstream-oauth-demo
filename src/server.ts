@@ -417,160 +417,55 @@ app.get('/callback', async (c) => {
 });
 
 // Device Authorization Flow demo page
-app.get('/device-demo', (c) => {
-  return c.html(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>Device Authorization Flow Demo</title>
-        <style>
-          body { font-family: system-ui, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
-          .card { border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin: 20px 0; }
-          button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-          button:hover { background: #0056b3; }
-          button:disabled { background: #ccc; cursor: not-allowed; }
-          pre { background: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; }
-          .user-code { font-size: 24px; font-weight: bold; color: #007bff; text-align: center; padding: 20px; }
-          .status { padding: 10px; margin: 10px 0; border-radius: 4px; }
-          .status.pending { background: #fff3cd; }
-          .status.success { background: #d4edda; }
-          .status.error { background: #f8d7da; }
-        </style>
-      </head>
-      <body>
-        <h1>Device Authorization Flow Demo</h1>
-        
-        <div class="card">
-          <h2>Step 1: Request Device Code</h2>
-          <button id="requestCodeBtn" onclick="requestDeviceCode()">Request Device & User Codes</button>
-          <div id="codeResult"></div>
-        </div>
-        
-        <div class="card" id="userAuthCard" style="display: none;">
-          <h2>Step 2: User Authorization</h2>
-          <p>Please visit the verification URI and enter the user code:</p>
-          <div class="user-code" id="userCode"></div>
-          <p><strong>Verification URI:</strong></p>
-          <p><a href="#" id="verificationUri" target="_blank"></a></p>
-          <button id="pollBtn" onclick="startPolling()">Start Polling for Token</button>
-          <div id="pollStatus"></div>
-        </div>
-        
-        <div class="card" id="tokenResult" style="display: none;">
-          <h2>Step 3: Tokens Received</h2>
-          <pre id="tokenData"></pre>
-        </div>
-        
-        <script>
-          let deviceCode = '';
-          let interval = 5;
-          let pollInterval = null;
-          
-          async function requestDeviceCode() {
-            const btn = document.getElementById('requestCodeBtn');
-            btn.disabled = true;
-            btn.textContent = 'Requesting...';
-            
-            try {
-              const response = await fetch('/device/request', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  client_id: '${CLIENT_ID}',
-                  client_secret: '${CLIENT_SECRET}',
-                  scope: 'openid offline'
-                })
-              });
-              
-              const data = await response.json();
-              
-              if (!response.ok) {
-                throw new Error(data.error || 'Failed to request device code');
-              }
-              
-              deviceCode = data.device_code;
-              interval = data.interval || 5;
-              
-              document.getElementById('userCode').textContent = data.user_code;
-              document.getElementById('verificationUri').href = data.verification_uri;
-              document.getElementById('verificationUri').textContent = data.verification_uri;
-              document.getElementById('userAuthCard').style.display = 'block';
-              
-              document.getElementById('codeResult').innerHTML = 
-                '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
-              
-            } catch (error) {
-              document.getElementById('codeResult').innerHTML = 
-                '<div class="status error">Error: ' + error.message + '</div>';
-            } finally {
-              btn.disabled = false;
-              btn.textContent = 'Request Device & User Codes';
-            }
-          }
-          
-          async function startPolling() {
-            const pollBtn = document.getElementById('pollBtn');
-            pollBtn.disabled = true;
-            pollBtn.textContent = 'Polling...';
-            
-            const statusDiv = document.getElementById('pollStatus');
-            statusDiv.innerHTML = '<div class="status pending">Waiting for user authorization...</div>';
-            
-            pollInterval = setInterval(async () => {
-              try {
-                const response = await fetch('/device/poll', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    device_code: deviceCode,
-                    client_id: '${CLIENT_ID}',
-                    client_secret: '${CLIENT_SECRET}'
-                  })
-                });
-                
-                const data = await response.json();
-                
-                if (data.access_token) {
-                  // Success!
-                  clearInterval(pollInterval);
-                  document.getElementById('tokenData').textContent = JSON.stringify(data, null, 2);
-                  document.getElementById('tokenResult').style.display = 'block';
-                  statusDiv.innerHTML = '<div class="status success">✓ Authorization complete! Tokens received.</div>';
-                  pollBtn.textContent = 'Polling Complete';
-                } else if (data.error === 'authorization_pending') {
-                  statusDiv.innerHTML = '<div class="status pending">Still waiting for authorization...</div>';
-                } else if (data.error === 'slow_down') {
-                  interval += 5;
-                  statusDiv.innerHTML = '<div class="status pending">Slow down requested. Increasing polling interval...</div>';
-                } else if (data.error === 'expired_token') {
-                  clearInterval(pollInterval);
-                  statusDiv.innerHTML = '<div class="status error">Device code expired. Please start over.</div>';
-                  pollBtn.disabled = false;
-                  pollBtn.textContent = 'Start Polling for Token';
-                } else {
-                  clearInterval(pollInterval);
-                  statusDiv.innerHTML = '<div class="status error">Error: ' + (data.error_description || data.error) + '</div>';
-                  pollBtn.disabled = false;
-                  pollBtn.textContent = 'Start Polling for Token';
-                }
-              } catch (error) {
-                clearInterval(pollInterval);
-                statusDiv.innerHTML = '<div class="status error">Error: ' + error.message + '</div>';
-                pollBtn.disabled = false;
-                pollBtn.textContent = 'Start Polling for Token';
-              }
-            }, interval * 1000);
-          }
-        </script>
-      </body>
-    </html>
-  `);
+app.get('/device-demo', async (c) => {
+  // Fetch client info to get configured scopes
+  let clientScopes = 'openid offline'; // Default fallback
+  try {
+    if (CLIENT_ID) {
+      const clientResponse = await fetch(`${HYDRA_ADMIN_URL}/admin/clients/${CLIENT_ID}`, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (clientResponse.ok) {
+        const clientData = await clientResponse.json();
+        clientScopes = clientData.scope || 'openid offline';
+      }
+    }
+  } catch (error) {
+    console.warn('[Device Flow Demo] Could not fetch client scopes, using default:', error);
+  }
+  
+  const html = await renderView('device-flow-demo', {
+    clientId: CLIENT_ID,
+    clientSecret: CLIENT_SECRET,
+    clientScopes: clientScopes
+  });
+  return c.html(html);
 });
 
 // Device code request endpoint
 app.post('/device/request', async (c) => {
   try {
     const { client_id, client_secret, scope } = await c.req.json();
+    
+    // If scope is not provided, fetch from client configuration
+    let finalScope = scope;
+    if (!finalScope) {
+      finalScope = 'openid offline'; // Default fallback
+      try {
+        const clientIdToUse = client_id || CLIENT_ID;
+        if (clientIdToUse) {
+          const clientResponse = await fetch(`${HYDRA_ADMIN_URL}/admin/clients/${clientIdToUse}`, {
+            headers: { 'Content-Type': 'application/json' },
+          });
+          if (clientResponse.ok) {
+            const clientData = await clientResponse.json();
+            finalScope = clientData.scope || 'openid offline';
+          }
+        }
+      } catch (error) {
+        console.warn('[Device Request] Could not fetch client scopes, using default:', error);
+      }
+    }
     
     const response = await fetch(`${HYDRA_PUBLIC_URL}/oauth2/device/auth`, {
       method: 'POST',
@@ -580,7 +475,7 @@ app.post('/device/request', async (c) => {
       body: new URLSearchParams({
         client_id: client_id || CLIENT_ID,
         client_secret: client_secret || CLIENT_SECRET,
-        scope: scope || 'openid offline',
+        scope: finalScope,
       }),
     });
 
@@ -601,6 +496,9 @@ app.post('/device/poll', async (c) => {
   try {
     const { device_code, client_id, client_secret } = await c.req.json();
     
+    // Add audience parameter to ensure token is valid for local API
+    const audience = 'http://localhost:3392';
+    
     const response = await fetch(`${HYDRA_PUBLIC_URL}/oauth2/token`, {
       method: 'POST',
       headers: {
@@ -611,6 +509,7 @@ app.post('/device/poll', async (c) => {
         device_code: device_code,
         client_id: client_id || CLIENT_ID,
         client_secret: client_secret || CLIENT_SECRET,
+        audience: audience, // Specify audience for local API server
       }),
     });
 
@@ -850,6 +749,103 @@ app.post('/client-credentials/test-api', async (c) => {
     return c.json(result);
   } catch (error) {
     console.error('[Test API] Exception making external API call:', error);
+    return c.json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error',
+      errorDetails: error instanceof Error ? error.stack : undefined,
+      note: 'This error occurred when the server tried to call the external API. Check server logs for details.'
+    }, 500);
+  }
+});
+
+// Device Flow API test endpoint
+app.post('/device/test-api', async (c) => {
+  try {
+    const { access_token } = await c.req.json();
+    
+    if (!access_token) {
+      return c.json({ success: false, error: 'No access token provided' }, 400);
+    }
+
+    // Decode token to inspect its contents
+    const tokenPayload = decodeJWT(access_token);
+    console.log(`[Device Flow Test API] Token payload:`, JSON.stringify(tokenPayload, null, 2));
+    
+    const API_URL = 'http://localhost:3392/v2/public/managers/time_entries?startDate=2025-12-22&endDate=2025-12-29&locationIds%5B0%5D=b6f3d953-5ce1-4395-9c25-080b451168fa&statuses%5B0%5D=ended&statuses%5B1%5D=approved&statuses%5B2%5D=started&sortField=clockIn&sortOrder=desc&limit=50';
+    
+    console.log(`[Device Flow Test API] Server-side: Making external API call to ${API_URL}`);
+    console.log(`[Device Flow Test API] Token scopes: ${tokenPayload?.scp || tokenPayload?.scope || 'N/A'}`);
+    console.log(`[Device Flow Test API] Token audience: ${JSON.stringify(tokenPayload?.aud || 'N/A')}`);
+    console.log(`[Device Flow Test API] Token subject: ${tokenPayload?.sub || 'N/A'}`);
+    
+    const startTime = Date.now();
+    const apiResponse = await fetch(API_URL, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${access_token}`,
+        'Content-Type': 'application/json',
+        'x-core-company-id': 'e71a903f-ff7d-42f2-b0f4-504ddc604ec5',
+      },
+    });
+    const duration = Date.now() - startTime;
+
+    console.log(`[Device Flow Test API] External API responded: ${apiResponse.status} ${apiResponse.statusText} (took ${duration}ms)`);
+
+    const result: any = {
+      status: apiResponse.status,
+      statusText: apiResponse.statusText,
+      success: apiResponse.ok && apiResponse.status !== 401,
+      apiUrl: API_URL,
+      requestMethod: 'GET',
+      duration: `${duration}ms`,
+      curlCommand: `curl -X GET "${API_URL}" \\\n  -H "Authorization: Bearer ${access_token}" \\\n  -H "Content-Type: application/json" \\\n  -H "x-core-company-id: e71a903f-ff7d-42f2-b0f4-504ddc604ec5"`,
+      testApiCurlCommand: `curl -X POST "http://localhost:${PORT}/device/test-api" \\\n  -H "Content-Type: application/json" \\\n  -d '{"access_token":"${access_token}"}'`,
+      tokenInfo: tokenPayload ? {
+        scopes: tokenPayload.scp || tokenPayload.scope || 'N/A',
+        audience: tokenPayload.aud || 'N/A',
+        subject: tokenPayload.sub || 'N/A',
+        clientId: tokenPayload.client_id || 'N/A',
+        expiresAt: tokenPayload.exp ? new Date(tokenPayload.exp * 1000).toISOString() : 'N/A',
+        issuedAt: tokenPayload.iat ? new Date(tokenPayload.iat * 1000).toISOString() : 'N/A',
+      } : null,
+    };
+
+    if (apiResponse.ok) {
+      try {
+        result.data = await apiResponse.json();
+        console.log(`[Device Flow Test API] Success! Got data from external API`);
+      } catch (e) {
+        result.data = await apiResponse.text();
+      }
+    } else {
+      try {
+        const errorText = await apiResponse.text();
+        let errorMsg = apiResponse.status === 401 
+          ? 'Unauthorized (401) - The external API call WAS made successfully, but the API returned 401.' 
+          : `External API call failed with status ${apiResponse.status}`;
+        
+        if (apiResponse.status === 401) {
+          errorMsg += '\n\nPossible reasons:';
+          errorMsg += '\n1. Token scopes may not match what the API requires';
+          errorMsg += '\n2. Token audience may not include the API endpoint';
+          errorMsg += '\n3. API may require additional permissions/claims';
+          errorMsg += `\n\nToken has scopes: ${tokenPayload?.scp || tokenPayload?.scope || 'N/A'}`;
+          errorMsg += `\nToken audience: ${JSON.stringify(tokenPayload?.aud || 'N/A')}`;
+        }
+        
+        result.error = errorMsg;
+        result.errorDetails = errorText;
+        result.errorMessage = `External API (${API_URL}) returned: ${errorText.substring(0, 200)}`;
+        console.log(`[Device Flow Test API] External API error: ${result.error}`);
+        console.log(`[Device Flow Test API] Error details: ${errorText.substring(0, 200)}`);
+      } catch (e) {
+        result.error = `Failed to read error response: ${e instanceof Error ? e.message : 'Unknown error'}`;
+      }
+    }
+
+    return c.json(result);
+  } catch (error) {
+    console.error('[Device Flow Test API] Exception making external API call:', error);
     return c.json({ 
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error',
