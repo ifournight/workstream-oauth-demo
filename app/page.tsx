@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { config } from '@/lib/config'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/base/buttons/button'
 import { Card, CardContent } from '@/components/ui/card'
 
 export default function HomePage() {
@@ -27,7 +27,7 @@ export default function HomePage() {
                 Manage all OAuth clients directly in Hydra. No identity filtering - shows all clients.
               </p>
               <Link href="/clients">
-                <Button variant="primary">Manage Global Clients</Button>
+                <Button color="primary">Manage Global Clients</Button>
               </Link>
               <p className="text-sm text-gray-600 italic mt-2">
                 Uses Hydra Admin APIs directly
@@ -42,7 +42,7 @@ export default function HomePage() {
                 Manage OAuth clients for a specific identity. Requires identity_id as input parameter.
               </p>
               <Link href="/identity-clients">
-                <Button variant="primary">Manage Identity Clients</Button>
+                <Button color="primary">Manage Identity Clients</Button>
               </Link>
               <p className="text-sm text-gray-600 italic mt-2">
                 Uses UMS /oauth-apps/v1 endpoints with owner_identity_id parameter
@@ -66,7 +66,7 @@ export default function HomePage() {
                 Standard OAuth 2.0 authorization code flow with PKCE support.
               </p>
               <Link href="/auth">
-                <Button variant="primary">Start Authorization Code Flow</Button>
+                <Button color="primary">Start Authorization Code Flow</Button>
               </Link>
             </CardContent>
           </Card>
@@ -78,7 +78,7 @@ export default function HomePage() {
                 OAuth 2.0 device authorization flow for devices with limited input capabilities.
               </p>
               <Link href="/device-demo">
-                <Button variant="primary">Start Device Flow</Button>
+                <Button color="primary">Start Device Flow</Button>
               </Link>
               <p className="text-sm text-orange-600 italic mt-2">
                 ⚠️ Note: Device flow may not be fully supported due to Ory configuration limitations.
@@ -93,7 +93,7 @@ export default function HomePage() {
                 Machine-to-machine flow (no user interaction). Uses UMS token endpoint.
               </p>
               <Link href="/client-credentials-demo">
-                <Button variant="primary">Start Client Credentials Flow</Button>
+                <Button color="primary">Start Client Credentials Flow</Button>
               </Link>
               <p className="text-sm text-gray-600 italic mt-2">
                 Uses UMS /auth/v1/oauth-apps/token endpoint

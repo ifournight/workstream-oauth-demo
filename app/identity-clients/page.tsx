@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/base/buttons/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableHeader, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Modal } from '@/components/ui/modal'
-import { Input } from '@/components/ui/input'
+import { Input } from '@/components/base/input/input'
 import { Alert } from '@/components/ui/alert'
 
 interface Client {
@@ -108,7 +108,7 @@ export default function IdentityClientsPage() {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Identity-Specific Clients Management</h1>
         <Link href="/">
-          <Button variant="secondary">← Back to Home</Button>
+          <Button color="secondary">← Back to Home</Button>
         </Link>
       </div>
 
@@ -118,11 +118,11 @@ export default function IdentityClientsPage() {
             <Input
               type="text"
               value={identityId}
-              onChange={(e) => setIdentityId(e.target.value)}
+              onChange={(value: string) => setIdentityId(value)}
               placeholder="Enter identity UUID"
               className="flex-1"
             />
-            <Button onClick={loadClients} disabled={loading} variant="primary">
+            <Button onClick={loadClients} isDisabled={loading} color="primary">
               {loading ? 'Loading...' : 'Load Clients'}
             </Button>
           </div>
@@ -137,7 +137,7 @@ export default function IdentityClientsPage() {
 
       {identityId && (
         <div className="mb-4 flex justify-end">
-          <Button variant="success" onClick={handleCreate}>
+          <Button color="primary" onClick={handleCreate}>
             + Create Identity Client
           </Button>
         </div>
@@ -190,10 +190,10 @@ export default function IdentityClientsPage() {
                     <TableCell className="text-sm text-gray-500">{scopes}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button variant="primary" size="sm" onClick={() => handleEdit(client)}>
+                        <Button color="primary" size="sm" onClick={() => handleEdit(client)}>
                           Edit
                         </Button>
-                        <Button variant="danger" size="sm" onClick={() => handleDelete(clientId)}>
+                        <Button color="primary-destructive" size="sm" onClick={() => handleDelete(clientId)}>
                           Delete
                         </Button>
                       </div>
@@ -295,7 +295,7 @@ function IdentityClientModal({
         label="Owner Identity ID"
         type="text"
         value={identityId}
-        disabled
+        isDisabled
         className="bg-gray-100"
       />
 
@@ -303,23 +303,23 @@ function IdentityClientModal({
         label="Client Name"
         type="text"
         value={formData.client_name}
-        onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
-        required
+        onChange={(value: string) => setFormData({ ...formData, client_name: value })}
+        isRequired
       />
 
       <Input
         label="Scopes (space-separated)"
         type="text"
         value={formData.scope}
-        onChange={(e) => setFormData({ ...formData, scope: e.target.value })}
+        onChange={(value: string) => setFormData({ ...formData, scope: value })}
         placeholder="openid offline"
       />
 
       <div className="flex justify-end gap-4 pt-4">
-        <Button type="button" variant="secondary" onClick={onClose}>
+        <Button type="button" color="secondary" onClick={onClose}>
           Cancel
         </Button>
-        <Button type="submit" variant="primary" disabled={saving}>
+        <Button type="submit" color="primary" isDisabled={saving}>
           {saving ? 'Saving...' : 'Save'}
         </Button>
       </div>

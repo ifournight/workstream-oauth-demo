@@ -19,6 +19,8 @@
       }
     ],
     "paths": {
+      "@/components/base/*": ["./app/components/base/*"],
+      "@/components/ui/*": ["./components/ui/*"],
       "@/*": ["./*"]
     },
     "types": ["bun-types", "node"]
