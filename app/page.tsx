@@ -2,12 +2,14 @@ import Link from 'next/link'
 import { config } from '@/lib/config'
 import { Button } from '@/components/base/buttons/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 export default function HomePage() {
   return (
     <div className="max-w-4xl mx-auto px-6 py-12 min-h-screen">
       <div className="flex justify-between items-start mb-4">
         <h1 className="text-4xl font-bold">OAuth 2.0 Verification Server</h1>
+        <ThemeToggle />
       </div>
       <div className="prose mb-12">
         <p className="text-lg">
