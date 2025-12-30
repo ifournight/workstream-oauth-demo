@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/base/buttons/button'
 import { Card, CardContent } from '@/app/components/ui/card'
-import { Table, TableHeader, TableRow, TableHead, TableCell } from '@/app/components/ui/table'
+import { Table, TableCard } from '@/components/application/table/table'
+import { LoadingIndicator } from '@/components/application/loading-indicator/loading-indicator'
+import { EmptyState } from '@/components/application/empty-state/empty-state'
 import { Modal } from '@/app/components/ui/modal'
 import { Input } from '@/components/base/input/input'
 import { Alert } from '@/app/components/ui/alert'
@@ -20,6 +22,14 @@ interface Client {
   owner_identity_id?: string
 }
 
+const columns = [
+  { id: 'client_id', name: 'Client ID' },
+  { id: 'name', name: 'Name' },
+  { id: 'grant_types', name: 'Grant Types' },
+  { id: 'scopes', name: 'Scopes' },
+  { id: 'actions', name: 'Actions' },
+] as const
+
 export default function IdentityClientsPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(false)
@@ -27,12 +37,15 @@ export default function IdentityClientsPage() {
   const [identityId, setIdentityId] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
+  const [inputError, setInputError] = useState<string | null>(null)
 
   async function loadClients() {
     if (!identityId.trim()) {
-      setError('Please enter an Identity ID')
+      setInputError('Please enter an Identity ID')
       return
     }
+
+    setInputError(null)
 
     try {
       setLoading(true)
@@ -49,7 +62,13 @@ export default function IdentityClientsPage() {
         throw new Error(errorMsg)
       }
       
-      setClients(Array.isArray(data) ? data : [])
+      const clientsWithId = Array.isArray(data) 
+        ? data.map((client: Client) => ({
+            ...client,
+            id: client.client_id || client.id || `client-${Math.random().toString(36).substr(2, 9)}`,
+          }))
+        : []
+      setClients(clientsWithId)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       setError(errorMessage)
@@ -127,11 +146,19 @@ export default function IdentityClientsPage() {
             <Input
               type="text"
               value={identityId}
-              onChange={(value: string) => setIdentityId(value)}
+              onChange={(value: string) => {
+                setIdentityId(value)
+                if (inputError && value.trim()) {
+                  setInputError(null)
+                }
+              }}
               placeholder="Enter identity UUID"
               className="flex-1"
+              isRequired
+              isInvalid={!!inputError}
+              hint={inputError || undefined}
             />
-            <Button onClick={loadClients} isDisabled={loading} color="primary">
+            <Button onClick={loadClients} isDisabled={loading} color="secondary">
               {loading ? 'Loading...' : 'Load Clients'}
             </Button>
           </div>
@@ -148,64 +175,104 @@ export default function IdentityClientsPage() {
       {loading ? (
         <Card>
           <CardContent>
-            <p>Loading clients...</p>
-          </CardContent>
-        </Card>
-      ) : clients.length === 0 && identityId ? (
-        <Card>
-          <CardContent>
-            <p className="text-tertiary">No clients found for this identity. Create your first client!</p>
+            <div className="py-12">
+              <LoadingIndicator size="md" label="Loading clients..." />
+            </div>
           </CardContent>
         </Card>
       ) : !identityId ? (
         <Card>
           <CardContent>
-            <p className="text-tertiary">Please enter an Identity ID and click "Load Clients" to view clients.</p>
+            <div className="py-12">
+              <EmptyState>
+                <EmptyState.Header>
+                  <EmptyState.Illustration type="box" />
+                </EmptyState.Header>
+                <EmptyState.Content>
+                  <EmptyState.Title>Enter Identity ID</EmptyState.Title>
+                  <EmptyState.Description>Please enter an Identity ID and click "Load Clients" to view clients.</EmptyState.Description>
+                </EmptyState.Content>
+              </EmptyState>
+            </div>
+          </CardContent>
+        </Card>
+      ) : clients.length === 0 ? (
+        <Card>
+          <CardContent>
+            <div className="py-12">
+              <EmptyState>
+                <EmptyState.Header>
+                  <EmptyState.Illustration type="box" />
+                </EmptyState.Header>
+                <EmptyState.Content>
+                  <EmptyState.Title>No clients found</EmptyState.Title>
+                  <EmptyState.Description>No clients found for this identity. Create your first client!</EmptyState.Description>
+                </EmptyState.Content>
+                <EmptyState.Footer>
+                  <Button color="primary" onClick={handleCreate}>
+                    + Create Identity Client
+                  </Button>
+                </EmptyState.Footer>
+              </EmptyState>
+            </div>
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Client ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Grant Types</TableHead>
-                <TableHead>Scopes</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <tbody className="bg-primary divide-y divide-secondary">
-              {clients.map((client) => {
+        <TableCard.Root>
+          <TableCard.Header
+            title="Identity Clients"
+            badge={`${clients.length} ${clients.length === 1 ? 'client' : 'clients'}`}
+          />
+          <Table aria-label="Identity clients table">
+            <Table.Header columns={columns}>
+              {(column) => <Table.Head>{column.name}</Table.Head>}
+            </Table.Header>
+            <Table.Body items={clients}>
+              {(client) => {
                 const clientId = client.client_id || client.id || 'N/A'
                 const clientName = client.client_name || client.name || 'N/A'
                 const grantTypes = (client.grant_types || []).join(', ') || 'N/A'
                 const scopes = client.scope || 'N/A'
 
                 return (
-                  <TableRow key={clientId}>
-                    <TableCell>
-                      <code className="bg-secondary px-2 py-1 rounded text-sm">{clientId}</code>
-                    </TableCell>
-                    <TableCell>{clientName}</TableCell>
-                    <TableCell className="text-sm text-tertiary">{grantTypes}</TableCell>
-                    <TableCell className="text-sm text-tertiary">{scopes}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button color="primary" size="sm" onClick={() => handleEdit(client)}>
-                          Edit
-                        </Button>
-                        <Button color="primary-destructive" size="sm" onClick={() => handleDelete(clientId)}>
-                          Delete
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                  <Table.Row columns={columns}>
+                    {(column) => {
+                      switch (column.id) {
+                        case 'client_id':
+                          return (
+                            <Table.Cell>
+                              <code className="bg-secondary px-2 py-1 rounded text-sm">{clientId}</code>
+                            </Table.Cell>
+                          )
+                        case 'name':
+                          return <Table.Cell>{clientName}</Table.Cell>
+                        case 'grant_types':
+                          return <Table.Cell className="text-sm text-tertiary">{grantTypes}</Table.Cell>
+                        case 'scopes':
+                          return <Table.Cell className="text-sm text-tertiary">{scopes}</Table.Cell>
+                        case 'actions':
+                          return (
+                            <Table.Cell>
+                              <div className="flex gap-2">
+                                <Button color="secondary" size="sm" onClick={() => handleEdit(client)}>
+                                  Edit
+                                </Button>
+                                <Button color="secondary" size="sm" onClick={() => handleDelete(clientId)}>
+                                  Delete
+                                </Button>
+                              </div>
+                            </Table.Cell>
+                          )
+                        default:
+                          return <Table.Cell />
+                      }
+                    }}
+                  </Table.Row>
                 )
-              })}
-            </tbody>
+              }}
+            </Table.Body>
           </Table>
-        </Card>
+        </TableCard.Root>
       )}
 
       <Modal

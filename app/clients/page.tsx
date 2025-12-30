@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/base/buttons/button'
 import { Card, CardContent } from '@/app/components/ui/card'
 import { Table, TableCard } from '@/components/application/table/table'
+import { LoadingIndicator } from '@/components/application/loading-indicator/loading-indicator'
+import { EmptyState } from '@/components/application/empty-state/empty-state'
 import { Modal } from '@/app/components/ui/modal'
 import { Input } from '@/components/base/input/input'
 import { Alert } from '@/app/components/ui/alert'
@@ -118,13 +120,30 @@ export default function GlobalClientsPage() {
       {loading ? (
         <Card>
           <CardContent>
-            <p>Loading clients...</p>
+            <div className="py-12">
+              <LoadingIndicator size="md" label="Loading clients..." />
+            </div>
           </CardContent>
         </Card>
       ) : clients.length === 0 ? (
         <Card>
           <CardContent>
-            <p className="text-tertiary">No clients found. Create your first client!</p>
+            <div className="py-12">
+              <EmptyState>
+                <EmptyState.Header>
+                  <EmptyState.Illustration type="box" />
+                </EmptyState.Header>
+                <EmptyState.Content>
+                  <EmptyState.Title>No clients found</EmptyState.Title>
+                  <EmptyState.Description>Create your first client to get started.</EmptyState.Description>
+                </EmptyState.Content>
+                <EmptyState.Footer>
+                  <Button color="primary" onClick={handleCreate}>
+                    + Create Client
+                  </Button>
+                </EmptyState.Footer>
+              </EmptyState>
+            </div>
           </CardContent>
         </Card>
       ) : (
@@ -164,10 +183,10 @@ export default function GlobalClientsPage() {
                           return (
                             <Table.Cell>
                               <div className="flex gap-2">
-                                <Button color="primary" size="sm" onClick={() => handleEdit(client)}>
+                                <Button color="secondary" size="sm" onClick={() => handleEdit(client)}>
                                   Edit
                                 </Button>
-                                <Button color="primary-destructive" size="sm" onClick={() => handleDelete(clientId)}>
+                                <Button color="secondary" size="sm" onClick={() => handleDelete(clientId)}>
                                   Delete
                                 </Button>
                               </div>
