@@ -16,7 +16,7 @@ const TEST_HYDRA_PUBLIC_URL = process.env.HYDRA_PUBLIC_URL || 'https://hydra-pub
 const TEST_CLIENT_ID = process.env.CLIENT_ID || '';
 const TEST_CLIENT_SECRET = process.env.CLIENT_SECRET || '';
 const TEST_REDIRECT_URI = process.env.REDIRECT_URI || 'http://localhost:3000/callback';
-const TEST_API_URL = 'https://api.dev.workstream.us/hris/v1/jobs';
+const TEST_API_URL = process.env.TEST_API_URL || 'https://ws-public-api.dev.workstream.us/time-shift/v2/public/managers/time_entries?startDate=2025-12-22&endDate=2025-12-29&locationIds%5B0%5D=b6f3d953-5ce1-4395-9c25-080b451168fa&statuses%5B0%5D=ended&statuses%5B1%5D=approved&statuses%5B2%5D=started&sortField=clockIn&sortOrder=desc&limit=50';
 
 if (!TEST_CLIENT_ID || !TEST_CLIENT_SECRET) {
   console.error('❌ Error: CLIENT_ID and CLIENT_SECRET must be set');

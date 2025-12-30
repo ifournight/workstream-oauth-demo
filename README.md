@@ -1,31 +1,54 @@
 # Workstream OAuth Apps - Verification Server
 
-This project provides a TypeScript server and demo scripts to verify OAuth 2.0 flows (Authorization Code, Device Authorization, and Client Credentials) with Ory Hydra.
+This project provides a Next.js application with React UI to verify OAuth 2.0 flows (Authorization Code, Device Authorization, and Client Credentials) with Ory Hydra and UMS integration.
 
 ## Quick Start
+
+### Option 1: Using Docker (Recommended)
+
+1. **Create `.env` file** (optional, can also use environment variables):
+   ```bash
+   # Copy and edit with your credentials
+   HYDRA_PUBLIC_URL=https://hydra-public.priv.dev.workstream.is
+   HYDRA_ADMIN_URL=https://hydra-admin.priv.dev.workstream.is
+   UMS_BASE_URL=https://users.priv.dev.workstream.us/
+   CLIENT_ID=your-client-id
+   CLIENT_SECRET=your-client-secret
+   NEXT_PUBLIC_BASE_URL=http://localhost:3000
+   ```
+
+2. **Start with Docker Compose:**
+   ```bash
+   docker-compose up --build
+   ```
+
+3. **Open in browser:**
+   ```
+   http://localhost:3000
+   ```
+
+### Option 2: Local Development
 
 1. **Install dependencies:**
    ```bash
    # Using Bun (recommended)
    bun install
-   
-   # Or using npm/node
-   npm install
    ```
 
 2. **Configure environment variables:**
+   Create a `.env.local` file:
    ```bash
-   cp .env.sample .env
-   # Edit .env with your client credentials
+   HYDRA_PUBLIC_URL=https://hydra-public.priv.dev.workstream.is
+   HYDRA_ADMIN_URL=https://hydra-admin.priv.dev.workstream.is
+   UMS_BASE_URL=https://users.priv.dev.workstream.us/
+   CLIENT_ID=your-client-id
+   CLIENT_SECRET=your-client-secret
+   NEXT_PUBLIC_BASE_URL=http://localhost:3000
    ```
 
-3. **Start the server:**
+3. **Start the development server:**
    ```bash
-   # Using Bun
    bun run dev
-   
-   # Or using Node.js
-   npm run start:node
    ```
 
 4. **Open in browser:**
@@ -37,47 +60,65 @@ This project provides a TypeScript server and demo scripts to verify OAuth 2.0 f
 
 ```
 .
-├── src/
-│   ├── server.ts                    # Main server with OAuth flows and client management
-│   ├── controllers/
-│   │   └── viewController.ts       # EJS view rendering controller
-│   ├── views/                       # EJS templates
-│   │   ├── home.ejs                 # Home page
-│   │   ├── client-credentials-demo.ejs
-│   │   └── clients.ejs              # Client management UI
-│   ├── demos/                       # Command-line demo scripts
-│   │   ├── auth-code-flow.ts
-│   │   ├── device-flow.ts
-│   │   └── client-credentials-flow.ts
-│   └── scripts/                     # Utility scripts
-│       ├── create-client.ts
-│       ├── update-client.ts
-│       └── test-api.ts
+├── app/                             # Next.js App Router
+│   ├── layout.tsx                   # Root layout
+│   ├── page.tsx                     # Home page
+│   ├── clients/                     # Global clients management
+│   │   └── page.tsx
+│   ├── identity-clients/            # Identity-specific clients management
+│   │   └── page.tsx
+│   ├── auth/                        # Authorization Code flow
+│   │   └── page.tsx
+│   ├── callback/                    # OAuth callback
+│   │   └── page.tsx
+│   ├── device-demo/                 # Device flow demo
+│   │   └── page.tsx
+│   ├── client-credentials-demo/     # Client credentials demo
+│   │   └── page.tsx
+│   └── api/                         # API Routes
+│       ├── clients/                 # Global clients API
+│       ├── identity-clients/        # Identity clients API
+│       ├── client-credentials/      # Client credentials token endpoint
+│       ├── test-api/                # API testing endpoint
+│       └── health/                  # Health check
+├── lib/                             # Utilities
+│   ├── config.ts                    # Environment configuration
+│   └── oauth.ts                     # OAuth helpers (PKCE, etc.)
+├── components/                      # React components
+├── src/                             # CLI scripts and demos (unchanged)
+│   ├── scripts/
+│   └── demos/
 ├── package.json
-├── tsconfig.json
-└── README.md
+├── next.config.js                   # Next.js configuration
+├── tailwind.config.js               # Tailwind CSS configuration
+└── tsconfig.json
 ```
 
 ## Features
 
 - ✅ **Authorization Code Flow** - Interactive web UI and command-line demo
-- ✅ **Device Authorization Flow** - For devices with limited input capabilities
-- ✅ **Client Credentials Flow** - Machine-to-machine authentication (no user interaction)
-- ✅ **OAuth Client Management** - Full CRUD UI for managing OAuth clients
+- ✅ **Device Authorization Flow** - For devices with limited input capabilities (note: requires Ory configuration)
+- ✅ **Client Credentials Flow** - Machine-to-machine authentication using UMS endpoint
+- ✅ **OAuth Client Management** - Two modes:
+  - **Global Clients (Hydra)** - Manage all clients directly in Hydra
+  - **Identity-Specific Clients (UMS)** - Manage clients for a specific identity
 - ✅ **Token Inspection** - JWT token decoding to view scopes, audience, and claims
 - ✅ **API Testing** - Built-in API testing with access tokens
 - ✅ **Runtime Detection** - Auto-detects Bun or Node.js and uses appropriate server
+- ✅ **Docker Support** - Run in containerized environment
 
 ## Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `HYDRA_PUBLIC_URL` | Ory Hydra public endpoint | `https://oauth2.dev.workstream.us` |
+| `HYDRA_PUBLIC_URL` | Ory Hydra public endpoint | `https://hydra-public.priv.dev.workstream.is` |
 | `HYDRA_ADMIN_URL` | Ory Hydra admin endpoint | `https://hydra-admin.priv.dev.workstream.is` |
-| `CLIENT_ID` | OAuth client ID | (required) |
-| `CLIENT_SECRET` | OAuth client secret | (required) |
+| `UMS_BASE_URL` | UMS base URL (for identity-specific clients and client credentials flow) | (required for UMS features) |
+| `CLIENT_ID` | OAuth client ID | (optional, can be set per request) |
+| `CLIENT_SECRET` | OAuth client secret | (optional, can be set per request) |
 | `PORT` | Server port | `3000` |
-| `REDIRECT_URI` | OAuth redirect URI | `http://localhost:3000/callback` |
+| `TEST_API_URL` | API endpoint for testing tokens | (default test endpoint) |
+| `COMPANY_ID` | Company ID for API calls | `eef568a4-86e4-4b51-bfeb-dc4daa831f6e` |
 
 ## Usage
 
@@ -136,11 +177,37 @@ The project uses a simple MVC-like structure:
 - **Views**: `src/views/*.ejs` - EJS templates for HTML pages
 - **Server**: `src/server.ts` - Main application with routes and API endpoints
 
+## Docker Commands
+
+```bash
+# Build and start
+docker-compose up --build
+
+# Start in background
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop
+docker-compose down
+
+# Rebuild after code changes
+docker-compose up --build --force-recreate
+```
+
 ## Troubleshooting
 
 ### VPN Connection Required
 
 If you see certificate/SSL errors, ensure you're connected to the company VPN when accessing Hydra admin endpoints.
+
+### Docker Issues
+
+If Docker container fails to start:
+- Check that port 3000 is not already in use: `lsof -i :3000`
+- Verify environment variables are set correctly
+- Check logs: `docker-compose logs oauth-server`
 
 ### Token Scopes
 

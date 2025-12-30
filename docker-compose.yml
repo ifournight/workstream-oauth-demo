@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  oauth-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: oauth-verification-server
+    ports:
+      - "3000:3000"
+    environment:
+      # Hydra Configuration
+      - HYDRA_PUBLIC_URL=${HYDRA_PUBLIC_URL:-https://hydra-public.priv.dev.workstream.is}
+      - HYDRA_ADMIN_URL=${HYDRA_ADMIN_URL:-https://hydra-admin.priv.dev.workstream.is}
+      
+      # UMS Configuration (required for Identity-Specific Client Management and Client Credentials Flow)
+      # Set this to your UMS base URL, e.g., https://ums.dev.workstream.us
+      - UMS_BASE_URL=${UMS_BASE_URL:-}
+      
+      # OAuth Client Configuration
+      - CLIENT_ID=${CLIENT_ID:-}
+      - CLIENT_SECRET=${CLIENT_SECRET:-}
+      
+      # Server Configuration
+      - PORT=${PORT:-3000}
+      
+      # API Testing Configuration
+      - TEST_API_URL=${TEST_API_URL:-https://ws-public-api.dev.workstream.us/time-shift/v2/managers/time_entries?startDate=2025-12-22&endDate=2025-12-29&locationIds%5B0%5D=6fced117-6a57-49cf-a131-12862a962272&statuses%5B0%5D=ended&statuses%5B1%5D=approved&statuses%5B2%5D=started&sortField=clockIn&sortOrder=desc&limit=50}
+      - COMPANY_ID=${COMPANY_ID:-eef568a4-86e4-4b51-bfeb-dc4daa831f6e}
+    # volumes:
+      # Optional: Mount source code for development (uncomment for development)
+      # - ./src:/app/src
+      # - ./package.json:/app/package.json
+    restart: unless-stopped
+    networks:
+      - oauth-network
+
+networks:
+  oauth-network:
+    driver: bridge
+

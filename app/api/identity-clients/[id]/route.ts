@@ -1,0 +1,170 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { config } from '@/lib/config'
+
+// GET /api/identity-clients/:id - Get a single identity client
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    if (!config.umsBaseUrl) {
+      return NextResponse.json(
+        { error: 'UMS_BASE_URL not configured. Please set it as an environment variable.' },
+        { status: 500 }
+      )
+    }
+
+    const clientId = params.id
+    const { searchParams } = new URL(request.url)
+    const identityId = searchParams.get('identity_id')
+    
+    if (!identityId) {
+      return NextResponse.json(
+        { error: 'identity_id query parameter is required' },
+        { status: 400 }
+      )
+    }
+
+    const response = await fetch(
+      `${config.umsBaseUrl}/oauth-apps/v1/${clientId}?owner_identity_id=${encodeURIComponent(identityId)}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    )
+
+    if (!response.ok) {
+      const error = await response.text()
+      return NextResponse.json(
+        { error: error || 'Failed to fetch client' },
+        { status: response.status }
+      )
+    }
+
+    const client = await response.json()
+    // Transform UMS response to match Hydra client format for frontend compatibility
+    const transformedClient = {
+      client_id: client.client_id || client.id,
+      client_name: client.name,
+      grant_types: client.grant_types || [],
+      response_types: client.response_types || [],
+      scope: Array.isArray(client.scopes) ? client.scopes.join(' ') : client.scopes || '',
+      redirect_uris: client.redirect_uris || [],
+      token_endpoint_auth_method: client.token_endpoint_auth_method || 'client_secret_post',
+      owner_identity_id: client.owner_identity_id,
+      ...client
+    }
+    return NextResponse.json(transformedClient)
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    )
+  }
+}
+
+// PUT /api/identity-clients/:id - Update an identity client
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    if (!config.umsBaseUrl) {
+      return NextResponse.json(
+        { error: 'UMS_BASE_URL not configured. Please set it as an environment variable.' },
+        { status: 500 }
+      )
+    }
+
+    const clientId = params.id
+    const { searchParams } = new URL(request.url)
+    const identityId = searchParams.get('identity_id')
+    
+    if (!identityId) {
+      return NextResponse.json(
+        { error: 'identity_id query parameter is required' },
+        { status: 400 }
+      )
+    }
+
+    const clientData = await request.json()
+    
+    const response = await fetch(
+      `${config.umsBaseUrl}/oauth-apps/v1/${clientId}?owner_identity_id=${encodeURIComponent(identityId)}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(clientData),
+      }
+    )
+
+    const data = await response.json()
+    
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: data.error || 'Failed to update client', ...data },
+        { status: response.status }
+      )
+    }
+
+    return NextResponse.json(data)
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    )
+  }
+}
+
+// DELETE /api/identity-clients/:id - Delete an identity client
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    if (!config.umsBaseUrl) {
+      return NextResponse.json(
+        { error: 'UMS_BASE_URL not configured. Please set it as an environment variable.' },
+        { status: 500 }
+      )
+    }
+
+    const clientId = params.id
+    const { searchParams } = new URL(request.url)
+    const identityId = searchParams.get('identity_id')
+    
+    if (!identityId) {
+      return NextResponse.json(
+        { error: 'identity_id query parameter is required' },
+        { status: 400 }
+      )
+    }
+
+    const response = await fetch(
+      `${config.umsBaseUrl}/oauth-apps/v1/${clientId}?owner_identity_id=${encodeURIComponent(identityId)}`,
+      {
+        method: 'DELETE',
+      }
+    )
+
+    if (!response.ok) {
+      const error = await response.text()
+      return NextResponse.json(
+        { error: error || 'Failed to delete client' },
+        { status: response.status }
+      )
+    }
+
+    return NextResponse.json({ success: true, message: 'Client deleted successfully' })
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    )
+  }
+}
+

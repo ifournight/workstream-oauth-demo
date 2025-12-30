@@ -1,0 +1,151 @@
+'use client'
+
+import { useState } from 'react'
+import Link from 'next/link'
+
+export default function ClientCredentialsDemoPage() {
+  const [tokenData, setTokenData] = useState<any>(null)
+  const [apiResult, setApiResult] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function requestToken() {
+    try {
+      setLoading(true)
+      setError(null)
+      setTokenData(null)
+      setApiResult(null)
+
+      const response = await fetch('/api/client-credentials/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          scope: 'openid offline',
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error_description || data.error || 'Failed to get token')
+      }
+
+      setTokenData(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function testAPI() {
+    if (!tokenData?.access_token) {
+      alert('Please get an access token first')
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+
+      const response = await fetch('/api/test-api', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          access_token: tokenData.access_token,
+        }),
+      })
+
+      const result = await response.json()
+
+      setApiResult(result)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto px-6 py-12">
+      <div className="mb-6">
+        <Link href="/" className="text-blue-600 hover:underline">
+          ← Back to Home
+        </Link>
+      </div>
+
+      <h1 className="text-3xl font-bold mb-6">Client Credentials Flow Demo</h1>
+
+      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <p className="text-sm">
+          This flow is for machine-to-machine communication. No user interaction required!
+        </p>
+        <p className="text-sm mt-2">
+          <strong>ℹ️ Endpoint:</strong> This flow uses the UMS endpoint (<code>/auth/v1/oauth-apps/token</code>) instead of Hydra. The token's <code>sub</code> claim will be set to the <code>owner_identity_id</code>.
+        </p>
+      </div>
+
+      <div className="border border-gray-200 rounded-lg p-6 mb-6">
+        <h2 className="text-xl font-semibold mb-4">Step 1: Request Access Token</h2>
+        <p className="mb-4">Click the button below to get an access token using only client credentials:</p>
+        <button
+          onClick={requestToken}
+          disabled={loading}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+        >
+          {loading ? 'Requesting...' : 'Get Access Token'}
+        </button>
+        {error && (
+          <div className="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+            {error}
+          </div>
+        )}
+        {tokenData && (
+          <div className="mt-4">
+            <h3 className="font-semibold mb-2">Token Response:</h3>
+            <pre className="bg-gray-100 p-4 rounded overflow-auto text-sm">
+              {JSON.stringify(tokenData, null, 2)}
+            </pre>
+          </div>
+        )}
+      </div>
+
+      {tokenData && (
+        <div className="border border-gray-200 rounded-lg p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4">Step 2: Test API Call</h2>
+          <p className="mb-4">Now let's test the API with the access token:</p>
+          <button
+            onClick={testAPI}
+            disabled={loading}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+          >
+            {loading ? 'Testing...' : 'Test API Call'}
+          </button>
+          {apiResult && (
+            <div className={`mt-4 p-4 rounded ${apiResult.success ? 'bg-green-100 border border-green-400' : 'bg-red-100 border border-red-400'}`}>
+              <h3 className={`font-semibold mb-2 ${apiResult.success ? 'text-green-600' : 'text-red-600'}`}>
+                {apiResult.success ? '✓ API Test Successful' : '❌ API Test Failed'}
+              </h3>
+              <p className="mb-2"><strong>Status:</strong> {apiResult.status} {apiResult.statusText}</p>
+              {apiResult.data && (
+                <pre className="bg-white p-2 rounded text-xs overflow-auto mt-2">
+                  {JSON.stringify(apiResult.data, null, 2)}
+                </pre>
+              )}
+              {apiResult.error && (
+                <pre className="bg-white p-2 rounded text-xs overflow-auto mt-2">
+                  {apiResult.error}
+                </pre>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+

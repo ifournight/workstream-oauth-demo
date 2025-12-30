@@ -44,11 +44,31 @@
       <h1>OAuth Client Management</h1>
       <div>
         <a href="/" class="btn btn-secondary">← Back to Home</a>
-        <button class="btn btn-success" onclick="openCreateModal()">+ Create Client</button>
+        <button class="btn btn-success" onclick="openCreateModal()" id="createClientBtn">+ Create Client</button>
       </div>
     </div>
 
     <div id="statusMessage"></div>
+
+    <div class="card">
+      <h2>Management Mode</h2>
+      <div class="form-group">
+        <label>
+          <input type="radio" name="managementMode" value="global" checked onchange="switchMode()">
+          Global Clients (Hydra) - All clients in Hydra
+        </label>
+        <br>
+        <label>
+          <input type="radio" name="managementMode" value="identity" onchange="switchMode()">
+          Identity-Specific Clients (UMS) - Clients for a specific identity
+        </label>
+      </div>
+      <div id="identityIdInput" style="display: none; margin-top: 15px;">
+        <label for="identityId">Identity ID (owner_identity_id):</label>
+        <input type="text" id="identityId" placeholder="Enter identity UUID" style="width: 100%; max-width: 400px;">
+        <button class="btn" onclick="loadClients()" style="margin-left: 10px;">Load Clients</button>
+      </div>
+    </div>
 
     <div class="card">
       <h2>OAuth Clients</h2>
@@ -123,6 +143,11 @@
             </select>
           </div>
 
+          <div class="form-group" id="ownerIdentityIdGroup" style="display: none;">
+            <label for="ownerIdentityId">Owner Identity ID (required for Identity-Specific mode):</label>
+            <input type="text" id="ownerIdentityId" name="owner_identity_id" placeholder="Enter identity UUID">
+          </div>
+
           <div class="actions">
             <button type="submit" class="btn btn-success">Save</button>
             <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
@@ -133,6 +158,38 @@
 
     <script>
       let clients = [];
+      let currentMode = 'global'; // 'global' or 'identity'
+
+      function switchMode() {
+        const mode = document.querySelector('input[name="managementMode"]:checked').value;
+        currentMode = mode;
+        const identityInput = document.getElementById('identityIdInput');
+        const ownerIdentityGroup = document.getElementById('ownerIdentityIdGroup');
+        const createBtn = document.getElementById('createClientBtn');
+        
+        if (mode === 'identity') {
+          identityInput.style.display = 'block';
+          ownerIdentityGroup.style.display = 'block';
+          createBtn.textContent = '+ Create Identity Client';
+          createBtn.title = 'Create a client for the specified identity (UMS)';
+        } else {
+          identityInput.style.display = 'none';
+          ownerIdentityGroup.style.display = 'none';
+          createBtn.textContent = '+ Create Global Client';
+          createBtn.title = 'Create a global client (Hydra)';
+        }
+        
+        // Clear and reload clients
+        clients = [];
+        loadClients();
+      }
+      
+      // Initialize button text on page load
+      if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        switchMode();
+      } else {
+        document.addEventListener('DOMContentLoaded', switchMode);
+      }
 
       async function loadClients() {
         const container = document.getElementById('clientsList');
@@ -143,22 +200,57 @@
         container.innerHTML = '<p>Loading clients...</p>';
         
         try {
-          console.log('Fetching clients from /api/clients...');
-          const response = await fetch('/api/clients');
+          let url = '/api/clients';
+          if (currentMode === 'identity') {
+            const identityId = document.getElementById('identityId').value.trim();
+            if (!identityId) {
+              container.innerHTML = '<p style="color: #ffc107;">⚠️ Please enter an Identity ID to load identity-specific clients.</p>';
+              return;
+            }
+            url = `/api/identity-clients?identity_id=${encodeURIComponent(identityId)}`;
+          }
+          
+          console.log(`Fetching clients from ${url}...`);
+          const response = await fetch(url);
           console.log('Response status:', response.status, response.statusText);
           
           if (!response.ok) {
             const errorText = await response.text();
             console.error('API error response:', errorText);
             let errorMsg = 'Error loading clients: ' + errorText;
+            let isUmsError = false;
             try {
               const errorData = JSON.parse(errorText);
               errorMsg = 'Error loading clients: ' + (errorData.error || errorData.error_description || errorText);
+              if (errorData.error && errorData.error.includes('UMS_BASE_URL')) {
+                isUmsError = true;
+                errorMsg = 'UMS_BASE_URL not configured. Please set it as an environment variable in docker-compose.yml or .env file.';
+              }
             } catch (e) {
               // Not JSON, use text as is
+              if (errorText.includes('UMS_BASE_URL')) {
+                isUmsError = true;
+                errorMsg = 'UMS_BASE_URL not configured. Please set it as an environment variable in docker-compose.yml or .env file.';
+              }
             }
             showStatus('error', errorMsg);
-            container.innerHTML = '<p style="color: #dc3545;">Failed to load clients. Please check your VPN connection and try again.</p>';
+            if (isUmsError) {
+              container.innerHTML = `
+                <div style="padding: 20px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 5px; color: #856404;">
+                  <h3 style="margin-top: 0;">⚠️ UMS Configuration Required</h3>
+                  <p><strong>UMS_BASE_URL</strong> is not configured. To use Identity-Specific Client Management, you need to:</p>
+                  <ol>
+                    <li>Set <code>UMS_BASE_URL</code> environment variable in <code>docker-compose.yml</code> or create a <code>.env</code> file</li>
+                    <li>Restart the container: <code>docker-compose restart oauth-server</code></li>
+                  </ol>
+                  <p><strong>Example:</strong></p>
+                  <pre style="background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto;">UMS_BASE_URL=https://ums.dev.workstream.us</pre>
+                  <p style="margin-bottom: 0;">Or use Global Clients (Hydra) mode which doesn't require UMS configuration.</p>
+                </div>
+              `;
+            } else {
+              container.innerHTML = '<p style="color: #dc3545;">Failed to load clients. Please check your VPN connection and try again.</p>';
+            }
             return;
           }
           
@@ -206,11 +298,13 @@
         clients.forEach(client => {
           const grantTypes = (client.grant_types || []).join(', ') || 'N/A';
           const scopes = client.scope || 'N/A';
+          const clientId = client.client_id || client.id || 'N/A';
+          const clientName = client.client_name || client.name || 'N/A';
           // Use data attributes instead of onclick to avoid quote escaping issues
-          const clientIdAttr = String(client.client_id).replace(/"/g, '&quot;');
+          const clientIdAttr = String(clientId).replace(/"/g, '&quot;');
           html += '<tr>' +
-            '<td><span class="code">' + client.client_id + '</span></td>' +
-            '<td>' + (client.client_name || 'N/A') + '</td>' +
+            '<td><span class="code">' + clientId + '</span></td>' +
+            '<td>' + clientName + '</td>' +
             '<td>' + grantTypes + '</td>' +
             '<td>' + scopes + '</td>' +
             '<td>' +
@@ -247,22 +341,65 @@
         document.getElementById('clientId').value = '';
         document.getElementById('rt_code').checked = true;
         document.getElementById('gt_client_credentials').checked = true;
+        
+        // Set owner_identity_id if in identity mode
+        if (currentMode === 'identity') {
+          const identityId = document.getElementById('identityId').value.trim();
+          if (identityId) {
+            document.getElementById('ownerIdentityId').value = identityId;
+          }
+        }
+        
         document.getElementById('clientModal').style.display = 'block';
       }
 
-      function editClient(clientId) {
-        const client = clients.find(c => c.client_id === clientId);
+      async function editClient(clientId) {
+        const client = clients.find(c => c.client_id === clientId || c.id === clientId);
         if (!client) {
-          showStatus('error', 'Client not found');
-          return;
+          // Try to fetch the client if not in the list
+          try {
+            let url = `/api/clients/${clientId}`;
+            if (currentMode === 'identity') {
+              const identityId = document.getElementById('identityId').value.trim();
+              if (!identityId) {
+                showStatus('error', 'Identity ID is required for identity-specific mode');
+                return;
+              }
+              url = `/api/identity-clients/${clientId}?identity_id=${encodeURIComponent(identityId)}`;
+            }
+            const response = await fetch(url);
+            if (!response.ok) {
+              showStatus('error', 'Client not found');
+              return;
+            }
+            const fetchedClient = await response.json();
+            populateEditForm(fetchedClient);
+            return;
+          } catch (error) {
+            showStatus('error', 'Error fetching client: ' + error.message);
+            return;
+          }
         }
+        populateEditForm(client);
+      }
 
+      function populateEditForm(client) {
         document.getElementById('modalTitle').textContent = 'Edit Client';
-        document.getElementById('clientId').value = client.client_id;
-        document.getElementById('clientName').value = client.client_name || '';
+        document.getElementById('clientId').value = client.client_id || client.id || '';
+        document.getElementById('clientName').value = client.client_name || client.name || '';
         document.getElementById('scope').value = client.scope || '';
         document.getElementById('redirectUris').value = (client.redirect_uris || []).join('\n');
         document.getElementById('tokenEndpointAuthMethod').value = client.token_endpoint_auth_method || 'client_secret_post';
+        
+        // Set owner_identity_id if in identity mode
+        if (currentMode === 'identity') {
+          const identityId = document.getElementById('identityId').value.trim();
+          if (identityId) {
+            document.getElementById('ownerIdentityId').value = identityId;
+          } else if (client.owner_identity_id) {
+            document.getElementById('ownerIdentityId').value = client.owner_identity_id;
+          }
+        }
 
         // Reset checkboxes
         ['gt_auth_code', 'gt_device_code', 'gt_client_credentials', 'gt_refresh_token'].forEach(id => {
@@ -336,9 +473,40 @@
           token_endpoint_auth_method: formData.get('token_endpoint_auth_method')
         };
 
+        // Add owner_identity_id for identity-specific mode
+        if (currentMode === 'identity') {
+          const ownerIdentityId = formData.get('owner_identity_id') || document.getElementById('ownerIdentityId')?.value?.trim();
+          const identityId = document.getElementById('identityId').value.trim();
+          const finalIdentityId = ownerIdentityId || identityId;
+          
+          if (!finalIdentityId) {
+            showStatus('error', 'Identity ID is required for identity-specific mode. Please enter it in the Identity ID field above.');
+            return;
+          }
+          clientData.owner_identity_id = finalIdentityId;
+        }
+
         try {
-          const url = clientId ? '/api/clients/' + clientId : '/api/clients';
-          const method = clientId ? 'PUT' : 'POST';
+          let url, method;
+          if (currentMode === 'identity') {
+            // Identity-specific mode uses UMS endpoints
+            if (clientId) {
+              const identityId = document.getElementById('identityId').value.trim();
+              if (!identityId) {
+                showStatus('error', 'Identity ID is required for identity-specific mode');
+                return;
+              }
+              url = `/api/identity-clients/${clientId}?identity_id=${encodeURIComponent(identityId)}`;
+              method = 'PUT';
+            } else {
+              url = '/api/identity-clients';
+              method = 'POST';
+            }
+          } else {
+            // Global mode uses Hydra endpoints
+            url = clientId ? '/api/clients/' + clientId : '/api/clients';
+            method = clientId ? 'PUT' : 'POST';
+          }
           
           const response = await fetch(url, {
             method: method,
@@ -356,7 +524,15 @@
             closeModal();
             loadClients();
           } else {
-            showStatus('error', 'Error: ' + (data.error || data.error_description || 'Unknown error'));
+            let errorMsg = 'Error: ' + (data.error || data.error_description || data.message || 'Unknown error');
+            if (data.details) {
+              errorMsg += '<br><br><details><summary>Details</summary><pre style="font-size: 0.85em; margin-top: 10px;">' + JSON.stringify(data.details, null, 2) + '</pre></details>';
+            }
+            if (data.status) {
+              errorMsg += '<br><small>Status: ' + data.status + ' ' + (data.statusText || '') + '</small>';
+            }
+            showStatus('error', errorMsg);
+            console.error('Client creation/update error:', data);
           }
         } catch (error) {
           showStatus('error', 'Error: ' + error.message);
@@ -369,7 +545,17 @@
         }
 
         try {
-          const response = await fetch('/api/clients/' + clientId, {
+          let url = `/api/clients/${clientId}`;
+          if (currentMode === 'identity') {
+            const identityId = document.getElementById('identityId').value.trim();
+            if (!identityId) {
+              showStatus('error', 'Identity ID is required for identity-specific mode');
+              return;
+            }
+            url = `/api/identity-clients/${clientId}?identity_id=${encodeURIComponent(identityId)}`;
+          }
+          
+          const response = await fetch(url, {
             method: 'DELETE'
           });
 

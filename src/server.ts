@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
+import { getCookie } from 'hono/cookie';
 import { renderView } from './controllers/viewController.js';
 import { createHash, randomBytes } from 'crypto';
+import { config } from './config/env.js';
 
 // Detect runtime and use appropriate server
 // @ts-ignore - Bun global is available at runtime
@@ -28,12 +30,17 @@ function generateCodeChallenge(verifier: string): string {
     .replace(/=/g, '');
 }
 
-// Configuration
-const HYDRA_PUBLIC_URL = process.env.HYDRA_PUBLIC_URL || 'https://hydra-public.priv.dev.workstream.is';
-const HYDRA_ADMIN_URL = process.env.HYDRA_ADMIN_URL || 'https://hydra-admin.priv.dev.workstream.is';
-const CLIENT_ID = process.env.CLIENT_ID || '';
-const CLIENT_SECRET = process.env.CLIENT_SECRET || '';
-const PORT = parseInt(process.env.PORT || '3000', 10);
+// Use centralized configuration
+const {
+  hydraPublicUrl: HYDRA_PUBLIC_URL,
+  hydraAdminUrl: HYDRA_ADMIN_URL,
+  umsBaseUrl: UMS_BASE_URL,
+  clientId: CLIENT_ID,
+  clientSecret: CLIENT_SECRET,
+  port: PORT,
+  testApiUrl: TEST_API_URL,
+  companyId: COMPANY_ID,
+} = config;
 
 const app = new Hono();
 
@@ -53,12 +60,18 @@ setInterval(() => {
 
 // Home page
 app.get('/', async (c) => {
-  const html = await renderView('home', {
-    hydraPublicUrl: HYDRA_PUBLIC_URL,
-    clientId: CLIENT_ID,
-    port: PORT
-  });
-  return c.html(html);
+  try {
+    const html = await renderView('home', {
+      hydraPublicUrl: HYDRA_PUBLIC_URL,
+      clientId: CLIENT_ID,
+      port: PORT,
+      umsBaseUrl: UMS_BASE_URL,
+    });
+    return c.html(html);
+  } catch (error) {
+    console.error('Error rendering home page:', error);
+    return c.text(`Internal Server Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 500);
+  }
 });
 
 // Initiate Authorization Code flow
@@ -111,20 +124,32 @@ app.get('/callback', async (c) => {
   const state = c.req.query('state');
   const error = c.req.query('error');
   
+  // Debug logging - before lookup
+  console.log('[Callback] Received state:', state);
+  console.log('[Callback] Store size before lookup:', oauthStateStore.size);
+  if (oauthStateStore.size > 0) {
+    console.log('[Callback] Store keys:', Array.from(oauthStateStore.keys()));
+  }
+  
+  // Also check cookie as backup
+  const cookieState = getCookie(c, 'oauth_state');
+  console.log('[Callback] Cookie state:', cookieState);
+  
   // Get state and code_verifier from memory store
   const storedData = state ? oauthStateStore.get(state) : null;
   const storedState = storedData?.state || null;
   const codeVerifier = storedData?.codeVerifier || null;
   
-  // Clean up after use
-  if (state) {
-    oauthStateStore.delete(state);
-  }
-  
-  // Debug logging
-  console.log('[Callback] Received state:', state);
+  // Debug logging - after lookup
   console.log('[Callback] Stored state:', storedState);
   console.log('[Callback] Code verifier present:', !!codeVerifier);
+  console.log('[Callback] Stored data found:', !!storedData);
+  
+  // Clean up after use (only if we found it)
+  if (state && storedData) {
+    oauthStateStore.delete(state);
+    console.log('[Callback] Cleaned up state from store');
+  }
 
   if (error) {
     return c.html(`
@@ -156,11 +181,26 @@ app.get('/callback', async (c) => {
   }
 
   // Verify state (basic CSRF protection)
-  if (state !== storedState) {
+  if (!storedData || state !== storedState) {
     console.error('[Callback] State mismatch!');
     console.error('  Received state:', state);
     console.error('  Stored state:', storedState);
     console.error('  State match:', state === storedState);
+    console.error('  Store size:', oauthStateStore.size);
+    console.error('  Store keys:', Array.from(oauthStateStore.keys()));
+    
+    // Check if state might have expired
+    const now = Date.now();
+    let expiredStates: string[] = [];
+    for (const [key, value] of oauthStateStore.entries()) {
+      if (value.expiresAt < now) {
+        expiredStates.push(key);
+      }
+    }
+    if (expiredStates.length > 0) {
+      console.error('  Expired states found:', expiredStates);
+    }
+    
     return c.html(`
       <!DOCTYPE html>
       <html>
@@ -171,6 +211,8 @@ app.get('/callback', async (c) => {
           <p><strong>Received state:</strong> ${state || 'null'}</p>
           <p><strong>Stored state:</strong> ${storedState || 'null (not found in store)'}</p>
           <p><strong>Store size:</strong> ${oauthStateStore.size} entries</p>
+          ${oauthStateStore.size > 0 ? `<p><strong>Store keys:</strong> ${Array.from(oauthStateStore.keys()).join(', ')}</p>` : ''}
+          <p><em>Tip: Try starting a new authorization flow from the home page.</em></p>
           <a href="/">← Back to Home</a>
         </body>
       </html>
@@ -237,7 +279,7 @@ app.get('/callback', async (c) => {
     }
 
     // Test API call with the access token
-    const API_URL = 'http://localhost:3392/v2/public/managers/time_entries?startDate=2025-12-22&endDate=2025-12-29&locationIds%5B0%5D=b6f3d953-5ce1-4395-9c25-080b451168fa&statuses%5B0%5D=ended&statuses%5B1%5D=approved&statuses%5B2%5D=started&sortField=clockIn&sortOrder=desc&limit=50';
+    const API_URL = TEST_API_URL;
     interface ApiTestResult {
       status: number;
       statusText: string;
@@ -255,9 +297,10 @@ app.get('/callback', async (c) => {
         headers: {
           'Authorization': `Bearer ${tokenData.access_token}`,
           'Content-Type': 'application/json',
-          'x-core-company-id': 'e71a903f-ff7d-42f2-b0f4-504ddc604ec5',
+          'x-core-company-id': COMPANY_ID,
         },
       });
+
       
       apiResult = {
         status: apiResponse.status,
@@ -546,21 +589,25 @@ app.get('/client-credentials-demo', async (c) => {
   return c.html(html);
 });
 
-// Client Credentials token endpoint
+// Client Credentials token endpoint (using UMS)
 app.post('/client-credentials/token', async (c) => {
   try {
-    const { client_id, client_secret, scope } = await c.req.json();
+    if (!UMS_BASE_URL) {
+      return c.json({ error: 'UMS_BASE_URL not configured. Please set it as an environment variable.' }, 500);
+    }
+
+    const { client_id, client_secret } = await c.req.json();
     
-    const response = await fetch(`${HYDRA_PUBLIC_URL}/oauth2/token`, {
+    // UMS endpoint supports both JSON and form-urlencoded
+    // Using JSON format as per UMS specification
+    const response = await fetch(`${UMS_BASE_URL}/auth/v1/oauth-apps/token`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
       },
-      body: new URLSearchParams({
-        grant_type: 'client_credentials',
+      body: JSON.stringify({
         client_id: client_id || CLIENT_ID,
         client_secret: client_secret || CLIENT_SECRET,
-        scope: scope || 'openid offline',
       }),
     });
 
@@ -608,7 +655,7 @@ app.post('/api/test', async (c) => {
     const tokenPayload = decodeJWT(access_token);
     console.log(`[Test API] Token payload:`, JSON.stringify(tokenPayload, null, 2));
     
-    const API_URL = 'https://api.dev.workstream.us/hris/v1/jobs';
+    const API_URL = TEST_API_URL;
     
     console.log(`[Test API] Server-side: Making external API call to ${API_URL}`);
     console.log(`[Test API] Token scopes: ${tokenPayload?.scp || tokenPayload?.scope || 'N/A'}`);
@@ -682,7 +729,7 @@ app.post('/client-credentials/test-api', async (c) => {
     const tokenPayload = decodeJWT(access_token);
     console.log(`[Test API] Token payload:`, JSON.stringify(tokenPayload, null, 2));
     
-    const API_URL = 'https://api.dev.workstream.us/hris/v1/jobs';
+    const API_URL = TEST_API_URL;
     
     console.log(`[Test API] Server-side: Making external API call to ${API_URL}`);
     console.log(`[Test API] Token scopes: ${tokenPayload?.scp || tokenPayload?.scope || 'N/A'}`);
@@ -771,7 +818,7 @@ app.post('/device/test-api', async (c) => {
     const tokenPayload = decodeJWT(access_token);
     console.log(`[Device Flow Test API] Token payload:`, JSON.stringify(tokenPayload, null, 2));
     
-    const API_URL = 'http://localhost:3392/v2/public/managers/time_entries?startDate=2025-12-22&endDate=2025-12-29&locationIds%5B0%5D=b6f3d953-5ce1-4395-9c25-080b451168fa&statuses%5B0%5D=ended&statuses%5B1%5D=approved&statuses%5B2%5D=started&sortField=clockIn&sortOrder=desc&limit=50';
+    const API_URL = TEST_API_URL;
     
     console.log(`[Device Flow Test API] Server-side: Making external API call to ${API_URL}`);
     console.log(`[Device Flow Test API] Token scopes: ${tokenPayload?.scp || tokenPayload?.scope || 'N/A'}`);
@@ -974,6 +1021,240 @@ app.delete('/api/clients/:id', async (c) => {
     const clientId = c.req.param('id');
     
     const response = await fetch(`${HYDRA_ADMIN_URL}/admin/clients/${clientId}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      return c.json({ error: error || 'Failed to delete client' }, response.status as any);
+    }
+
+    return c.json({ success: true, message: 'Client deleted successfully' });
+  } catch (error) {
+    return c.json({ error: error instanceof Error ? error.message : 'Unknown error' }, 500);
+  }
+});
+
+// ============================================================================
+// Identity-Specific Client Management (UMS Endpoints)
+// ============================================================================
+
+// API: List clients for an identity
+app.get('/api/identity-clients', async (c) => {
+  try {
+    if (!UMS_BASE_URL) {
+      return c.json({ error: 'UMS_BASE_URL not configured. Please set it as an environment variable.' }, 500);
+    }
+
+    const identityId = c.req.query('identity_id');
+    if (!identityId) {
+      return c.json({ error: 'identity_id query parameter is required' }, 400);
+    }
+
+    const response = await fetch(`${UMS_BASE_URL}/oauth-apps/v1?owner_identity_id=${encodeURIComponent(identityId)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      return c.json({ error: error || 'Failed to fetch clients' }, response.status as any);
+    }
+
+    const clients = await response.json();
+    const clientsArray = Array.isArray(clients) ? clients : [];
+    
+    // Transform UMS response format to match Hydra format for frontend compatibility
+    const transformedClients = clientsArray.map((client: any) => ({
+      client_id: client.client_id || client.id,
+      client_name: client.name,
+      scope: Array.isArray(client.scopes) ? client.scopes.join(' ') : (client.scope || ''),
+      id: client.id,
+      name: client.name,
+      description: client.description,
+      scopes: client.scopes,
+      created_at: client.created_at,
+      // Include all original fields
+      ...client
+    }));
+    
+    return c.json(transformedClients);
+  } catch (error) {
+    return c.json({ error: error instanceof Error ? error.message : 'Unknown error' }, 500);
+  }
+});
+
+// API: Get single identity client
+app.get('/api/identity-clients/:id', async (c) => {
+  try {
+    if (!UMS_BASE_URL) {
+      return c.json({ error: 'UMS_BASE_URL not configured. Please set it as an environment variable.' }, 500);
+    }
+
+    const clientId = c.req.param('id');
+    const identityId = c.req.query('identity_id');
+    if (!identityId) {
+      return c.json({ error: 'identity_id query parameter is required' }, 400);
+    }
+
+    const response = await fetch(`${UMS_BASE_URL}/oauth-apps/v1/${clientId}?owner_identity_id=${encodeURIComponent(identityId)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      return c.json({ error: error || 'Failed to fetch client' }, response.status as any);
+    }
+
+    const client = await response.json();
+    return c.json(client);
+  } catch (error) {
+    return c.json({ error: error instanceof Error ? error.message : 'Unknown error' }, 500);
+  }
+});
+
+// API: Create identity client
+app.post('/api/identity-clients', async (c) => {
+  try {
+    if (!UMS_BASE_URL) {
+      return c.json({ error: 'UMS_BASE_URL not configured. Please set it as an environment variable.' }, 500);
+    }
+
+    const clientData = await c.req.json();
+    
+    if (!clientData.owner_identity_id) {
+      return c.json({ error: 'owner_identity_id is required in request body' }, 400);
+    }
+    
+    // Transform data format for UMS API
+    // UMS may expect different field names or formats
+    const umsRequestData: any = {
+      owner_identity_id: clientData.owner_identity_id,
+      name: clientData.client_name || clientData.name,
+    };
+    
+    // Add optional fields if provided
+    if (clientData.scope) {
+      // UMS might expect scopes as array or space-separated string
+      umsRequestData.scopes = clientData.scope.split(/\s+/).filter((s: string) => s.length > 0);
+    }
+    if (clientData.description) {
+      umsRequestData.description = clientData.description;
+    }
+    
+    console.log('[Create Identity Client] Request to UMS:', JSON.stringify(umsRequestData, null, 2));
+    console.log('[Create Identity Client] UMS URL:', `${UMS_BASE_URL}/oauth-apps/v1`);
+    
+    const response = await fetch(`${UMS_BASE_URL}/oauth-apps/v1`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(umsRequestData),
+    });
+
+    let data: any;
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      const text = await response.text();
+      data = { error: text || 'Unknown error', rawResponse: text };
+    }
+    
+    console.log('[Create Identity Client] UMS Response:', response.status, JSON.stringify(data, null, 2));
+    
+    if (!response.ok) {
+      return c.json({ 
+        error: data.error || data.message || 'Failed to create client',
+        error_description: data.error_description,
+        details: data,
+        status: response.status,
+        statusText: response.statusText
+      }, response.status as any);
+    }
+
+    // Transform UMS response to match expected format (compatible with Hydra format)
+    // UMS returns: { id, client_id, client_secret, name, scopes, ... }
+    // Frontend expects: { client_id, client_secret, client_name, scope, ... }
+    const transformedData = {
+      client_id: data.client_id || data.id,
+      client_secret: data.client_secret,
+      client_name: data.name,
+      scope: Array.isArray(data.scopes) ? data.scopes.join(' ') : (data.scope || ''),
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      scopes: data.scopes,
+      created_at: data.created_at,
+      // Include all original fields for compatibility
+      ...data
+    };
+
+    return c.json(transformedData);
+  } catch (error) {
+    console.error('[Create Identity Client] Exception:', error);
+    return c.json({ 
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    }, 500);
+  }
+});
+
+// API: Update identity client
+app.put('/api/identity-clients/:id', async (c) => {
+  try {
+    if (!UMS_BASE_URL) {
+      return c.json({ error: 'UMS_BASE_URL not configured. Please set it as an environment variable.' }, 500);
+    }
+
+    const clientId = c.req.param('id');
+    const identityId = c.req.query('identity_id');
+    if (!identityId) {
+      return c.json({ error: 'identity_id query parameter is required' }, 400);
+    }
+
+    const clientData = await c.req.json();
+    
+    const response = await fetch(`${UMS_BASE_URL}/oauth-apps/v1/${clientId}?owner_identity_id=${encodeURIComponent(identityId)}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(clientData),
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      return c.json({ error: data.error || 'Failed to update client', ...data }, response.status as any);
+    }
+
+    return c.json(data);
+  } catch (error) {
+    return c.json({ error: error instanceof Error ? error.message : 'Unknown error' }, 500);
+  }
+});
+
+// API: Delete identity client
+app.delete('/api/identity-clients/:id', async (c) => {
+  try {
+    if (!UMS_BASE_URL) {
+      return c.json({ error: 'UMS_BASE_URL not configured. Please set it as an environment variable.' }, 500);
+    }
+
+    const clientId = c.req.param('id');
+    const identityId = c.req.query('identity_id');
+    if (!identityId) {
+      return c.json({ error: 'identity_id query parameter is required' }, 400);
+    }
+    
+    const response = await fetch(`${UMS_BASE_URL}/oauth-apps/v1/${clientId}?owner_identity_id=${encodeURIComponent(identityId)}`, {
       method: 'DELETE',
     });
 

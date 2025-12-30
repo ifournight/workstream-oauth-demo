@@ -23,6 +23,9 @@
   <body>
     <h1>Device Authorization Flow Demo</h1>
     <p class="status info">This flow is for devices that cannot securely store client credentials or display a web browser. The user will authorize on a separate device.</p>
+    <div class="status" style="background: #fff3cd; border: 1px solid #ffc107; color: #856404; margin: 15px 0;">
+      <strong>⚠️ Configuration Limitation:</strong> Device Authorization Flow may not be fully supported due to lack of Ory configuration. Please ensure that your Ory Hydra instance has device flow properly configured before using this flow.
+    </div>
     
     <div class="card">
       <h2>Step 1: Request Device & User Codes</h2>
