@@ -71,14 +71,15 @@ export default function ClientCredentialsDemoPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12">
-      <div className="mb-6">
-        <Link href="/" className="text-brand-primary hover:underline">
-          ← Back to Home
-        </Link>
-      </div>
-
-      <h1 className="text-3xl font-bold mb-6">Client Credentials Flow Demo</h1>
+    <div className="max-w-4xl">
+      <PageHeader
+        title="Client Credentials Flow"
+        breadcrumbs={[
+          { label: 'Flows', href: '#' },
+          { label: 'Client Credentials' },
+        ]}
+        description="Machine-to-machine flow (no user interaction). Uses UMS token endpoint"
+      />
 
       <div className="mb-6 p-4 bg-brand-primary border border-brand rounded-lg">
         <p className="text-sm">

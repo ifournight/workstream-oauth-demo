@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { Button } from '@/components/base/buttons/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Table, TableHeader, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { Modal } from '@/components/ui/modal'
+import { Card, CardContent } from '@/app/components/ui/card'
+import { Table, TableHeader, TableRow, TableHead, TableCell } from '@/app/components/ui/table'
+import { Modal } from '@/app/components/ui/modal'
 import { Input } from '@/components/base/input/input'
-import { Alert } from '@/components/ui/alert'
+import { Alert } from '@/app/components/ui/alert'
+import { PageHeader } from '@/app/components/page-header'
 
 interface Client {
   client_id?: string
@@ -80,18 +80,20 @@ export default function GlobalClientsPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Global Clients Management</h1>
-        <div className="flex gap-4">
-          <Link href="/">
-            <Button color="secondary">← Back to Home</Button>
-          </Link>
+    <div className="max-w-7xl">
+      <PageHeader
+        title="Global Clients"
+        breadcrumbs={[
+          { label: 'Clients', href: '#' },
+          { label: 'Global Clients' },
+        ]}
+        description="Manage all OAuth clients directly in Hydra. No identity filtering - shows all clients."
+        actions={
           <Button color="primary" onClick={handleCreate}>
             + Create Client
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       {error && (
         <Alert variant="error" className="mb-6">

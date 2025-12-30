@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { config } from '@/lib/config'
 import Link from 'next/link'
+import { PageHeader } from '@/app/components/page-header'
 
 interface SearchParams {
   code?: string
@@ -19,8 +20,15 @@ export default async function CallbackPage({
 
   if (error) {
     return (
-      <div className="max-w-2xl mx-auto px-6 py-12">
-        <h1 className="text-2xl font-bold mb-4 text-error-primary">Authorization Error</h1>
+      <div className="max-w-2xl">
+        <PageHeader
+          title="Authorization Error"
+          breadcrumbs={[
+            { label: 'Flows', href: '#' },
+            { label: 'Authorization Code' },
+            { label: 'Callback' },
+          ]}
+        />
         <p className="mb-2"><strong>Error:</strong> {error}</p>
         <p className="mb-4"><strong>Description:</strong> {error_description || 'No description'}</p>
         <Link href="/" className="text-brand-primary hover:underline">
@@ -32,8 +40,15 @@ export default async function CallbackPage({
 
   if (!code) {
     return (
-      <div className="max-w-2xl mx-auto px-6 py-12">
-        <h1 className="text-2xl font-bold mb-4 text-error-primary">No Authorization Code</h1>
+      <div className="max-w-2xl">
+        <PageHeader
+          title="No Authorization Code"
+          breadcrumbs={[
+            { label: 'Flows', href: '#' },
+            { label: 'Authorization Code' },
+            { label: 'Callback' },
+          ]}
+        />
         <p className="mb-4">No authorization code was received in the callback.</p>
         <Link href="/" className="text-brand-primary hover:underline">
           ← Back to Home
@@ -48,8 +63,15 @@ export default async function CallbackPage({
 
   if (!state || state !== storedState) {
     return (
-      <div className="max-w-2xl mx-auto px-6 py-12">
-        <h1 className="text-2xl font-bold mb-4 text-error-primary">State Mismatch</h1>
+      <div className="max-w-2xl">
+        <PageHeader
+          title="State Mismatch"
+          breadcrumbs={[
+            { label: 'Flows', href: '#' },
+            { label: 'Authorization Code' },
+            { label: 'Callback' },
+          ]}
+        />
         <p className="mb-4">State parameter does not match. Possible CSRF attack or expired session.</p>
         <p className="mb-2"><strong>Received state:</strong> {state || 'null'}</p>
         <p className="mb-4"><strong>Stored state:</strong> {storedState || 'null (not found)'}</p>
@@ -62,8 +84,15 @@ export default async function CallbackPage({
 
   if (!codeVerifier) {
     return (
-      <div className="max-w-2xl mx-auto px-6 py-12">
-        <h1 className="text-2xl font-bold mb-4 text-error-primary">PKCE Error</h1>
+      <div className="max-w-2xl">
+        <PageHeader
+          title="PKCE Error"
+          breadcrumbs={[
+            { label: 'Flows', href: '#' },
+            { label: 'Authorization Code' },
+            { label: 'Callback' },
+          ]}
+        />
         <p className="mb-4">Code verifier is missing. Please restart the authorization flow.</p>
         <Link href="/" className="text-brand-primary hover:underline">
           ← Back to Home
@@ -99,8 +128,15 @@ export default async function CallbackPage({
 
     if (!tokenResponse.ok) {
       return (
-        <div className="max-w-2xl mx-auto px-6 py-12">
-          <h1 className="text-2xl font-bold mb-4 text-error-primary">Token Exchange Failed</h1>
+        <div className="max-w-2xl">
+          <PageHeader
+            title="Token Exchange Failed"
+            breadcrumbs={[
+              { label: 'Flows', href: '#' },
+              { label: 'Authorization Code' },
+              { label: 'Callback' },
+            ]}
+          />
           <pre className="bg-secondary p-4 rounded overflow-auto">
             {JSON.stringify(tokenData, null, 2)}
           </pre>
@@ -145,8 +181,15 @@ export default async function CallbackPage({
     }
 
     return (
-      <div className="max-w-4xl mx-auto px-6 py-12">
-        <h1 className="text-3xl font-bold mb-6 text-success-primary">✓ Authorization Code Flow Successful!</h1>
+      <div className="max-w-4xl">
+        <PageHeader
+          title="✓ Authorization Code Flow Successful!"
+          breadcrumbs={[
+            { label: 'Flows', href: '#' },
+            { label: 'Authorization Code' },
+            { label: 'Callback' },
+          ]}
+        />
 
         <div className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Received Tokens:</h2>
@@ -194,8 +237,15 @@ export default async function CallbackPage({
     )
   } catch (error) {
     return (
-      <div className="max-w-2xl mx-auto px-6 py-12">
-        <h1 className="text-2xl font-bold mb-4 text-error-primary">Token Exchange Error</h1>
+      <div className="max-w-2xl">
+        <PageHeader
+          title="Token Exchange Error"
+          breadcrumbs={[
+            { label: 'Flows', href: '#' },
+            { label: 'Authorization Code' },
+            { label: 'Callback' },
+          ]}
+        />
         <p className="mb-4">{error instanceof Error ? error.message : 'Unknown error'}</p>
         <Link href="/" className="text-brand-primary hover:underline">
           ← Back to Home

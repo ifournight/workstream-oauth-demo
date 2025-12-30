@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
+import { PageHeader } from '@/app/components/page-header'
 
 export default function DeviceDemoPage() {
   const [deviceCode, setDeviceCode] = useState('')
@@ -99,14 +99,15 @@ export default function DeviceDemoPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12">
-      <div className="mb-6">
-        <Link href="/" className="text-brand-primary hover:underline">
-          ← Back to Home
-        </Link>
-      </div>
-
-      <h1 className="text-3xl font-bold mb-6">Device Authorization Flow Demo</h1>
+    <div className="max-w-4xl">
+      <PageHeader
+        title="Device Authorization Flow"
+        breadcrumbs={[
+          { label: 'Flows', href: '#' },
+          { label: 'Device Authorization' },
+        ]}
+        description="OAuth 2.0 device authorization flow for devices with limited input capabilities"
+      />
 
       <div className="mb-6 p-4 bg-brand-primary border border-brand rounded-lg">
         <p className="text-sm">

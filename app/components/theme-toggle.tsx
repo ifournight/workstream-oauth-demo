@@ -18,22 +18,26 @@ export function ThemeToggle() {
         return (
             <Button
                 aria-label="Toggle theme"
-                color="tertiary"
-                size="sm"
+                color="secondary"
+                size="md"
                 iconLeading={Sun}
                 isDisabled
-            />
+            >
+                Light
+            </Button>
         );
     }
 
     return (
         <Button
             aria-label="Toggle theme"
-            color="tertiary"
-            size="sm"
+            color="secondary"
+            size="md"
             iconLeading={theme === "light" ? Moon01 : Sun}
             onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-        />
+        >
+            {theme === "light" ? "Dark" : "Light"}
+        </Button>
     );
 }
 

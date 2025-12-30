@@ -2,12 +2,19 @@ import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { config } from '@/lib/config'
 import { generateCodeVerifier, generateCodeChallenge, generateState } from '@/lib/oauth'
+import { PageHeader } from '@/app/components/page-header'
 
 export default async function AuthPage() {
   if (!config.clientId) {
     return (
-      <div className="max-w-2xl mx-auto px-6 py-12">
-        <h1 className="text-2xl font-bold mb-4">Configuration Error</h1>
+      <div className="max-w-2xl">
+        <PageHeader
+          title="Configuration Error"
+          breadcrumbs={[
+            { label: 'Flows', href: '#' },
+            { label: 'Authorization Code' },
+          ]}
+        />
         <p>CLIENT_ID not configured. Please set it as an environment variable.</p>
       </div>
     )
