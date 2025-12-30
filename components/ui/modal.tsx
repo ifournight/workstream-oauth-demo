@@ -23,14 +23,14 @@ export function Modal({ isOpen, onClose, title, children, className = '' }: Moda
       
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className={`relative bg-white rounded-lg shadow-xl max-w-lg w-full p-6 ${className}`}>
+        <div className={`relative bg-primary rounded-lg shadow-xl max-w-lg w-full p-6 ${className}`}>
           {/* Header */}
           {title && (
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+              <h2 className="text-xl font-semibold text-primary">{title}</h2>
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-500 focus:outline-none"
+                className="text-quaternary hover:text-tertiary focus:outline-none"
               >
                 <span className="sr-only">Close</span>
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

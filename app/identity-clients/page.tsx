@@ -152,13 +152,13 @@ export default function IdentityClientsPage() {
       ) : clients.length === 0 && identityId ? (
         <Card>
           <CardContent>
-            <p className="text-gray-600">No clients found for this identity. Create your first client!</p>
+            <p className="text-tertiary">No clients found for this identity. Create your first client!</p>
           </CardContent>
         </Card>
       ) : !identityId ? (
         <Card>
           <CardContent>
-            <p className="text-gray-600">Please enter an Identity ID and click "Load Clients" to view clients.</p>
+            <p className="text-tertiary">Please enter an Identity ID and click "Load Clients" to view clients.</p>
           </CardContent>
         </Card>
       ) : (
@@ -173,7 +173,7 @@ export default function IdentityClientsPage() {
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-primary divide-y divide-secondary">
               {clients.map((client) => {
                 const clientId = client.client_id || client.id || 'N/A'
                 const clientName = client.client_name || client.name || 'N/A'
@@ -183,11 +183,11 @@ export default function IdentityClientsPage() {
                 return (
                   <TableRow key={clientId}>
                     <TableCell>
-                      <code className="bg-gray-100 px-2 py-1 rounded text-sm">{clientId}</code>
+                      <code className="bg-secondary px-2 py-1 rounded text-sm">{clientId}</code>
                     </TableCell>
                     <TableCell>{clientName}</TableCell>
-                    <TableCell className="text-sm text-gray-500">{grantTypes}</TableCell>
-                    <TableCell className="text-sm text-gray-500">{scopes}</TableCell>
+                    <TableCell className="text-sm text-tertiary">{grantTypes}</TableCell>
+                    <TableCell className="text-sm text-tertiary">{scopes}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
                         <Button color="primary" size="sm" onClick={() => handleEdit(client)}>
@@ -296,7 +296,7 @@ function IdentityClientModal({
         type="text"
         value={identityId}
         isDisabled
-        className="bg-gray-100"
+        className="bg-secondary"
       />
 
       <Input

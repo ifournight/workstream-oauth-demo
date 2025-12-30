@@ -108,7 +108,7 @@ export default function GlobalClientsPage() {
       ) : clients.length === 0 ? (
         <Card>
           <CardContent>
-            <p className="text-gray-600">No clients found. Create your first client!</p>
+            <p className="text-tertiary">No clients found. Create your first client!</p>
           </CardContent>
         </Card>
       ) : (
@@ -123,7 +123,7 @@ export default function GlobalClientsPage() {
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-primary divide-y divide-secondary">
               {clients.map((client) => {
                 const clientId = client.client_id || client.id || 'N/A'
                 const clientName = client.client_name || client.name || 'N/A'
@@ -133,11 +133,11 @@ export default function GlobalClientsPage() {
                 return (
                   <TableRow key={clientId}>
                     <TableCell>
-                      <code className="bg-gray-100 px-2 py-1 rounded text-sm">{clientId}</code>
+                      <code className="bg-secondary px-2 py-1 rounded text-sm">{clientId}</code>
                     </TableCell>
                     <TableCell>{clientName}</TableCell>
-                    <TableCell className="text-sm text-gray-500">{grantTypes}</TableCell>
-                    <TableCell className="text-sm text-gray-500">{scopes}</TableCell>
+                    <TableCell className="text-sm text-tertiary">{grantTypes}</TableCell>
+                    <TableCell className="text-sm text-tertiary">{scopes}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
                         <Button color="primary" size="sm" onClick={() => handleEdit(client)}>
@@ -260,13 +260,13 @@ function ClientModal({
       />
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-secondary mb-1">
           Redirect URIs (one per line)
         </label>
         <textarea
           value={formData.redirect_uris}
           onChange={(e) => setFormData({ ...formData, redirect_uris: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-primary rounded-md focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
           rows={3}
           placeholder="http://localhost:3000/callback"
         />

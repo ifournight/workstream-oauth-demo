@@ -8,7 +8,7 @@ interface TableProps {
 export function Table({ children, className = '' }: TableProps) {
   return (
     <div className={`overflow-x-auto ${className}`}>
-      <table className="min-w-full divide-y divide-gray-200">
+      <table className="min-w-full divide-y divide-secondary">
         {children}
       </table>
     </div>
@@ -17,7 +17,7 @@ export function Table({ children, className = '' }: TableProps) {
 
 export function TableHeader({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <thead className={`bg-gray-50 ${className}`}>
+    <thead className={`bg-secondary ${className}`}>
       {children}
     </thead>
   )
@@ -33,7 +33,7 @@ export function TableRow({ children, className = '' }: { children: React.ReactNo
 
 export function TableHead({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <th className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${className}`}>
+    <th className={`px-6 py-3 text-left text-xs font-medium text-tertiary uppercase tracking-wider ${className}`}>
       {children}
     </th>
   )
@@ -41,7 +41,7 @@ export function TableHead({ children, className = '' }: { children: React.ReactN
 
 export function TableCell({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <td className={`px-6 py-4 whitespace-nowrap text-sm text-gray-900 ${className}`}>
+    <td className={`px-6 py-4 whitespace-nowrap text-sm text-primary ${className}`}>
       {children}
     </td>
   )

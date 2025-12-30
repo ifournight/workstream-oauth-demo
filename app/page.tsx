@@ -19,7 +19,7 @@ export default function HomePage() {
       
       {/* Client Management Section */}
       <section className="mb-12">
-        <h2 className="text-2xl font-semibold mb-6 pb-3 border-b-2 border-blue-600 text-gray-900">
+        <h2 className="text-2xl font-semibold mb-6 pb-3 border-b-2 border-brand text-primary">
           Client Management
         </h2>
         
@@ -62,7 +62,7 @@ export default function HomePage() {
       
       {/* OAuth Flows Section */}
       <section className="mb-12">
-        <h2 className="text-2xl font-semibold mb-6 pb-3 border-b-2 border-blue-600 text-gray-900">
+        <h2 className="text-2xl font-semibold mb-6 pb-3 border-b-2 border-brand text-primary">
           OAuth Flows
         </h2>
         
@@ -91,7 +91,7 @@ export default function HomePage() {
                 <Link href="/device-demo">
                   <Button color="primary">Start Device Flow</Button>
                 </Link>
-                <p className="text-sm italic mt-2 not-prose text-orange-600">
+                <p className="text-sm italic mt-2 not-prose text-warning-primary">
                   ⚠️ Note: Device flow may not be fully supported due to Ory configuration limitations.
                 </p>
               </div>
@@ -119,7 +119,7 @@ export default function HomePage() {
       
       {/* Configuration Section */}
       <section>
-        <h2 className="text-2xl font-semibold mb-6 pb-3 border-b-2 border-blue-600 text-gray-900">
+        <h2 className="text-2xl font-semibold mb-6 pb-3 border-b-2 border-brand text-primary">
           Configuration
         </h2>
         <Card>

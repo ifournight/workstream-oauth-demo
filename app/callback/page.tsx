@@ -20,10 +20,10 @@ export default async function CallbackPage({
   if (error) {
     return (
       <div className="max-w-2xl mx-auto px-6 py-12">
-        <h1 className="text-2xl font-bold mb-4 text-red-600">Authorization Error</h1>
+        <h1 className="text-2xl font-bold mb-4 text-error-primary">Authorization Error</h1>
         <p className="mb-2"><strong>Error:</strong> {error}</p>
         <p className="mb-4"><strong>Description:</strong> {error_description || 'No description'}</p>
-        <Link href="/" className="text-blue-600 hover:underline">
+        <Link href="/" className="text-brand-primary hover:underline">
           ← Back to Home
         </Link>
       </div>
@@ -33,9 +33,9 @@ export default async function CallbackPage({
   if (!code) {
     return (
       <div className="max-w-2xl mx-auto px-6 py-12">
-        <h1 className="text-2xl font-bold mb-4 text-red-600">No Authorization Code</h1>
+        <h1 className="text-2xl font-bold mb-4 text-error-primary">No Authorization Code</h1>
         <p className="mb-4">No authorization code was received in the callback.</p>
-        <Link href="/" className="text-blue-600 hover:underline">
+        <Link href="/" className="text-brand-primary hover:underline">
           ← Back to Home
         </Link>
       </div>
@@ -49,11 +49,11 @@ export default async function CallbackPage({
   if (!state || state !== storedState) {
     return (
       <div className="max-w-2xl mx-auto px-6 py-12">
-        <h1 className="text-2xl font-bold mb-4 text-red-600">State Mismatch</h1>
+        <h1 className="text-2xl font-bold mb-4 text-error-primary">State Mismatch</h1>
         <p className="mb-4">State parameter does not match. Possible CSRF attack or expired session.</p>
         <p className="mb-2"><strong>Received state:</strong> {state || 'null'}</p>
         <p className="mb-4"><strong>Stored state:</strong> {storedState || 'null (not found)'}</p>
-        <Link href="/" className="text-blue-600 hover:underline">
+        <Link href="/" className="text-brand-primary hover:underline">
           ← Back to Home
         </Link>
       </div>
@@ -63,9 +63,9 @@ export default async function CallbackPage({
   if (!codeVerifier) {
     return (
       <div className="max-w-2xl mx-auto px-6 py-12">
-        <h1 className="text-2xl font-bold mb-4 text-red-600">PKCE Error</h1>
+        <h1 className="text-2xl font-bold mb-4 text-error-primary">PKCE Error</h1>
         <p className="mb-4">Code verifier is missing. Please restart the authorization flow.</p>
-        <Link href="/" className="text-blue-600 hover:underline">
+        <Link href="/" className="text-brand-primary hover:underline">
           ← Back to Home
         </Link>
       </div>
@@ -100,11 +100,11 @@ export default async function CallbackPage({
     if (!tokenResponse.ok) {
       return (
         <div className="max-w-2xl mx-auto px-6 py-12">
-          <h1 className="text-2xl font-bold mb-4 text-red-600">Token Exchange Failed</h1>
-          <pre className="bg-gray-100 p-4 rounded overflow-auto">
+          <h1 className="text-2xl font-bold mb-4 text-error-primary">Token Exchange Failed</h1>
+          <pre className="bg-secondary p-4 rounded overflow-auto">
             {JSON.stringify(tokenData, null, 2)}
           </pre>
-          <Link href="/" className="text-blue-600 hover:underline mt-4 inline-block">
+          <Link href="/" className="text-brand-primary hover:underline mt-4 inline-block">
             ← Back to Home
           </Link>
         </div>
@@ -146,39 +146,39 @@ export default async function CallbackPage({
 
     return (
       <div className="max-w-4xl mx-auto px-6 py-12">
-        <h1 className="text-3xl font-bold mb-6 text-green-600">✓ Authorization Code Flow Successful!</h1>
+        <h1 className="text-3xl font-bold mb-6 text-success-primary">✓ Authorization Code Flow Successful!</h1>
 
         <div className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Received Tokens:</h2>
-          <pre className="bg-gray-100 p-4 rounded overflow-auto text-sm">
+          <pre className="bg-secondary p-4 rounded overflow-auto text-sm">
             {JSON.stringify(tokenData, null, 2)}
           </pre>
         </div>
 
         <div className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">API Test Result:</h2>
-          <div className={`p-4 rounded ${apiResult?.success ? 'bg-green-100 border border-green-400' : 'bg-red-100 border border-red-400'}`}>
+          <div className={`p-4 rounded ${apiResult?.success ? 'bg-success-secondary border border-success' : 'bg-error-secondary border border-error'}`}>
             {apiError ? (
               <>
-                <h3 className="font-semibold text-red-600 mb-2">❌ API Test Failed</h3>
+                <h3 className="font-semibold text-error-primary mb-2">❌ API Test Failed</h3>
                 <p><strong>Error:</strong> {apiError}</p>
               </>
             ) : apiResult?.success ? (
               <>
-                <h3 className="font-semibold text-green-600 mb-2">✓ API Test Successful</h3>
+                <h3 className="font-semibold text-success-primary mb-2">✓ API Test Successful</h3>
                 <p className="mb-2"><strong>Status:</strong> {apiResult.status} {apiResult.statusText}</p>
                 {apiResult.data && (
-                  <pre className="bg-white p-2 rounded text-xs overflow-auto mt-2">
+                  <pre className="bg-primary p-2 rounded text-xs overflow-auto mt-2">
                     {JSON.stringify(apiResult.data, null, 2)}
                   </pre>
                 )}
               </>
             ) : (
               <>
-                <h3 className="font-semibold text-red-600 mb-2">❌ API Test Failed</h3>
+                <h3 className="font-semibold text-error-primary mb-2">❌ API Test Failed</h3>
                 <p className="mb-2"><strong>Status:</strong> {apiResult?.status} {apiResult?.statusText}</p>
                 {apiResult?.error && (
-                  <pre className="bg-white p-2 rounded text-xs overflow-auto mt-2">
+                  <pre className="bg-primary p-2 rounded text-xs overflow-auto mt-2">
                     {apiResult.error}
                   </pre>
                 )}
@@ -187,7 +187,7 @@ export default async function CallbackPage({
           </div>
         </div>
 
-        <Link href="/" className="text-blue-600 hover:underline">
+        <Link href="/" className="text-brand-primary hover:underline">
           ← Back to Home
         </Link>
       </div>
@@ -195,9 +195,9 @@ export default async function CallbackPage({
   } catch (error) {
     return (
       <div className="max-w-2xl mx-auto px-6 py-12">
-        <h1 className="text-2xl font-bold mb-4 text-red-600">Token Exchange Error</h1>
+        <h1 className="text-2xl font-bold mb-4 text-error-primary">Token Exchange Error</h1>
         <p className="mb-4">{error instanceof Error ? error.message : 'Unknown error'}</p>
-        <Link href="/" className="text-blue-600 hover:underline">
+        <Link href="/" className="text-brand-primary hover:underline">
           ← Back to Home
         </Link>
       </div>
