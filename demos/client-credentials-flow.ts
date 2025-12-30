@@ -6,7 +6,7 @@
  * No user interaction required - just client_id and client_secret.
  * 
  * Usage:
- *   bun run src/demos/client-credentials-flow.ts
+ *   bun run demos/client-credentials-flow.ts
  */
 
 const CC_HYDRA_PUBLIC_URL = process.env.HYDRA_PUBLIC_URL || 'https://oauth2.dev.workstream.us';

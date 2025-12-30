@@ -3,10 +3,10 @@
  * Create OAuth2 Client in Ory Hydra
  * 
  * Usage:
- *   bun run src/scripts/create-client.ts
+ *   bun run scripts/create-client.ts
  * 
  * Or with custom values:
- *   HYDRA_ADMIN_URL=https://hydra-admin.priv.dev.workstream.is bun run src/scripts/create-client.ts
+ *   HYDRA_ADMIN_URL=https://hydra-admin.priv.dev.workstream.is bun run scripts/create-client.ts
  */
 
 export {};

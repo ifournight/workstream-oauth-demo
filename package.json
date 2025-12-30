@@ -8,11 +8,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "create-client": "bun run src/scripts/create-client.ts",
-    "update-client": "bun run src/scripts/update-client.ts",
-    "test:auth-code": "bun run src/demos/auth-code-flow.ts",
-    "test:device": "bun run src/demos/device-flow.ts",
-    "test:client-credentials": "bun run src/demos/client-credentials-flow.ts"
+    "create-client": "bun run scripts/create-client.ts",
+    "update-client": "bun run scripts/update-client.ts",
+    "test:auth-code": "bun run demos/auth-code-flow.ts",
+    "test:device": "bun run demos/device-flow.ts",
+    "test:client-credentials": "bun run demos/client-credentials-flow.ts"
   },
   "keywords": ["oauth2", "ory", "hydra", "verification"],
   "author": "",

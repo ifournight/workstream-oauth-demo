@@ -75,23 +75,57 @@ This project provides a Next.js application with React UI to verify OAuth 2.0 fl
 │   │   └── page.tsx
 │   ├── client-credentials-demo/     # Client credentials demo
 │   │   └── page.tsx
+│   ├── components/                  # Application-specific components
+│   │   ├── page-header.tsx         # Page header with breadcrumbs
+│   │   ├── sidebar-layout.tsx      # Sidebar navigation layout
+│   │   ├── theme-toggle.tsx        # Theme toggle component
+│   │   └── ui/                     # Custom UI components
+│   │       ├── alert.tsx
+│   │       ├── card.tsx
+│   │       ├── modal.tsx
+│   │       └── table.tsx
 │   └── api/                         # API Routes
 │       ├── clients/                 # Global clients API
 │       ├── identity-clients/        # Identity clients API
 │       ├── client-credentials/      # Client credentials token endpoint
 │       ├── test-api/                # API testing endpoint
 │       └── health/                  # Health check
-├── lib/                             # Utilities
+├── components/                      # Untitled UI components (third-party library)
+│   ├── base/                        # Base components (buttons, inputs, etc.)
+│   ├── foundations/                # Foundation components (logos, icons)
+│   ├── application/                 # Application UI components
+│   └── shared-assets/               # Shared assets
+├── hooks/                           # Custom React hooks
+│   ├── use-breakpoint.ts           # Breakpoint detection hook
+│   └── use-clipboard.ts            # Clipboard utility hook
+├── providers/                       # Global React providers
+│   ├── router-provider.tsx         # Next.js router integration for react-aria
+│   └── theme-provider.tsx          # Theme management provider
+├── lib/                             # Business logic and configuration
 │   ├── config.ts                    # Environment configuration
+│   ├── navigation.ts                # Navigation menu configuration
 │   └── oauth.ts                     # OAuth helpers (PKCE, etc.)
-├── components/                      # React components
-├── src/                             # CLI scripts and demos (unchanged)
-│   ├── scripts/
-│   └── demos/
+├── utils/                           # Pure utility functions
+│   ├── cx.ts                        # Class name utility
+│   └── is-react-component.ts       # React component type guard
+├── types/                           # Shared TypeScript type definitions
+│   └── index.ts                     # Common types (BreadcrumbItem, etc.)
+├── styles/                          # Global styles
+│   ├── globals.css                  # Global CSS and Tailwind imports
+│   ├── theme.css                    # Untitled UI theme variables
+│   └── typography.css               # Typography styles
+├── scripts/                         # CLI utility scripts
+│   ├── create-client.ts            # Create OAuth client in Hydra
+│   ├── update-client.ts            # Update OAuth client
+│   └── test-api.ts                 # Test API with access token
+├── demos/                           # OAuth flow demonstration scripts
+│   ├── auth-code-flow.ts           # Authorization Code flow demo
+│   ├── device-flow.ts              # Device Authorization flow demo
+│   └── client-credentials-flow.ts  # Client Credentials flow demo
 ├── package.json
 ├── next.config.js                   # Next.js configuration
 ├── tailwind.config.js               # Tailwind CSS configuration
-└── tsconfig.json
+└── tsconfig.json                    # TypeScript configuration
 ```
 
 ## Features
@@ -138,21 +172,21 @@ This project provides a Next.js application with React UI to verify OAuth 2.0 fl
 ```bash
 export CLIENT_ID="your-client-id"
 export CLIENT_SECRET="your-client-secret"
-bun run src/demos/auth-code-flow.ts
+bun run demos/auth-code-flow.ts
 ```
 
 **Device Authorization Flow:**
 ```bash
 export CLIENT_ID="your-client-id"
 export CLIENT_SECRET="your-client-secret"
-bun run src/demos/device-flow.ts
+bun run demos/device-flow.ts
 ```
 
 **Client Credentials Flow:**
 ```bash
 export CLIENT_ID="your-client-id"
 export CLIENT_SECRET="your-client-secret"
-bun run src/demos/client-credentials-flow.ts
+bun run demos/client-credentials-flow.ts
 ```
 
 ### Client Management
@@ -161,21 +195,31 @@ Use the web UI at `/clients` or the scripts:
 
 **Create a client:**
 ```bash
-bun run src/scripts/create-client.ts
+bun run scripts/create-client.ts
 ```
 
 **Update a client:**
 ```bash
-bun run src/scripts/update-client.ts
+bun run scripts/update-client.ts
 ```
 
 ## Architecture
 
-The project uses a simple MVC-like structure:
+The project follows Next.js best practices with a clear separation of concerns:
 
-- **Controllers**: `src/controllers/viewController.ts` - Handles view rendering
-- **Views**: `src/views/*.ejs` - EJS templates for HTML pages
-- **Server**: `src/server.ts` - Main application with routes and API endpoints
+- **Next.js App Router**: `app/` - All pages, API routes, and layouts
+  - `app/components/` - Application-specific components (colocation)
+  - `app/api/` - API routes for backend functionality
+- **Untitled UI Components**: `components/` - Third-party component library (must be at root for proper imports)
+- **Custom Components**: `app/components/` - Application-specific UI components
+- **Hooks**: `hooks/` - Reusable React hooks
+- **Providers**: `providers/` - Global React context providers
+- **Business Logic**: `lib/` - Configuration, OAuth helpers, and navigation
+- **Utilities**: `utils/` - Pure utility functions
+- **Types**: `types/` - Shared TypeScript type definitions
+- **Styles**: `styles/` - Global CSS and theme files
+- **Scripts**: `scripts/` - CLI utility scripts for OAuth client management
+- **Demos**: `demos/` - OAuth flow demonstration scripts
 
 ## Docker Commands
 

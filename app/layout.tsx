@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
-import { RouteProvider } from '@/app/providers/router-provider';
-import { ThemeProvider } from '@/app/providers/theme-provider';
+import { RouteProvider } from '@/providers/router-provider';
+import { ThemeProvider } from '@/providers/theme-provider';
 import { SidebarLayout } from '@/app/components/sidebar-layout';
 import { navigationItems } from '@/lib/navigation';
 import "@/styles/globals.css";

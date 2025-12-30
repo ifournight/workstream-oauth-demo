@@ -3,10 +3,10 @@
  * Update OAuth2 Client to add client_credentials grant type
  * 
  * Usage:
- *   bun run src/scripts/update-client.ts
+ *   bun run scripts/update-client.ts
  * 
  * Or with custom values:
- *   CLIENT_ID=your-client-id HYDRA_ADMIN_URL=https://hydra-admin.priv.dev.workstream.is bun run src/scripts/update-client.ts
+ *   CLIENT_ID=your-client-id HYDRA_ADMIN_URL=https://hydra-admin.priv.dev.workstream.is bun run scripts/update-client.ts
  */
 
 export {};

@@ -4,11 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { ChevronRight } from "@untitledui/icons";
 import { cx } from "@/utils/cx";
-
-export interface BreadcrumbItem {
-    label: string;
-    href?: string;
-}
+import type { BreadcrumbItem } from "@/types";
 
 interface PageHeaderProps {
     title: string;

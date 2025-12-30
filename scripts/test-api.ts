@@ -7,7 +7,7 @@
  * 2. Uses the token to call the Workstream API
  * 
  * Usage:
- *   bun run src/scripts/test-api.ts
+ *   bun run scripts/test-api.ts
  */
 
 export {};
@@ -53,7 +53,7 @@ console.log('⏳ Please complete the authorization in your browser...\n');
 console.log('After you see the callback page with tokens, please:');
 console.log('1. Copy the authorization code from the callback URL');
 console.log('2. Run this script again with the code as an argument:');
-console.log(`   bun run src/scripts/test-api.ts <authorization_code>\n`);
+console.log(`   bun run scripts/test-api.ts <authorization_code>\n`);
 
 // If authorization code is provided as argument
 const authCode = process.argv[2];
