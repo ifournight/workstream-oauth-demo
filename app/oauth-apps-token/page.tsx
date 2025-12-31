@@ -284,17 +284,21 @@ export default function OAuthAppsTokenPage() {
                           {(item) => <Select.Item id={item.id}>{item.label}</Select.Item>}
                         </Select>
 
-                        <Input
-                          label="Client Secret"
-                          type="text"
-                          value={clientSecret}
-                          onChange={(value: string) => setClientSecret(value)}
-                          placeholder="Enter client secret"
-                          isRequired
-                          hint="Required for token request. 1Password supported."
-                          autoComplete="off"
-                          {...({ 'data-1p-ignore': 'false' } as any)}
-                        />
+                        {selectedClientId && (
+                          <Input
+                            label="Client Secret"
+                            type="password"
+                            value={clientSecret}
+                            onChange={(value: string) => setClientSecret(value)}
+                            placeholder="Enter client secret"
+                            isRequired
+                            hint="Required for token request. 1Password and Apple Keychain supported."
+                            autoComplete="current-password"
+                            name="client_secret"
+                            id="client_secret"
+                            {...({ 'data-1p-ignore': 'false', 'data-lpignore': 'false' } as any)}
+                          />
+                        )}
                       </div>
 
                       <div className="flex justify-end pt-2">
@@ -375,17 +379,21 @@ export default function OAuthAppsTokenPage() {
                           {(item) => <Select.Item id={item.id}>{item.label}</Select.Item>}
                         </Select>
 
-                        <Input
-                          label="Client Secret"
-                          type="text"
-                          value={clientSecret}
-                          onChange={(value: string) => setClientSecret(value)}
-                          placeholder="Enter client secret"
-                          isRequired
-                          hint="Required for token request. 1Password supported."
-                          autoComplete="off"
-                          {...({ 'data-1p-ignore': 'false' } as any)}
-                        />
+                        {selectedClientId && (
+                          <Input
+                            label="Client Secret"
+                            type="password"
+                            value={clientSecret}
+                            onChange={(value: string) => setClientSecret(value)}
+                            placeholder="Enter client secret"
+                            isRequired
+                            hint="Required for token request. 1Password and Apple Keychain supported."
+                            autoComplete="current-password"
+                            name="client_secret"
+                            id="client_secret"
+                            {...({ 'data-1p-ignore': 'false', 'data-lpignore': 'false' } as any)}
+                          />
+                        )}
                       </div>
 
                       <div className="flex justify-end pt-2">
