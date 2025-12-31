@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { PageHeader } from '@/app/components/page-header'
 import { toast } from 'sonner'
 
@@ -8,13 +9,11 @@ export default function DeviceDemoPage() {
   const [deviceCode, setDeviceCode] = useState('')
   const [userCode, setUserCode] = useState('')
   const [verificationUri, setVerificationUri] = useState('')
-  const [polling, setPolling] = useState(false)
-  const [tokenData, setTokenData] = useState<any>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [shouldPoll, setShouldPoll] = useState(false)
 
-  async function requestDeviceCode() {
-    try {
-      setError(null)
+  // Request device code mutation
+  const requestDeviceCodeMutation = useMutation({
+    mutationFn: async () => {
       // Get config from API
       const configRes = await fetch('/api/config')
       const config = await configRes.json()
@@ -36,89 +35,102 @@ export default function DeviceDemoPage() {
         throw new Error(data.error_description || data.error || 'Failed to request device code')
       }
 
+      return data
+    },
+    onSuccess: (data: any) => {
       setDeviceCode(data.device_code)
       setUserCode(data.user_code)
       setVerificationUri(data.verification_uri)
       toast.success('Device Code Generated', {
         description: 'Device and user codes have been generated. Please visit the verification URI and enter the user code.',
       })
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      setError(errorMessage)
+    },
+    onError: (err: Error) => {
       toast.error('Failed to Generate Device Code', {
-        description: errorMessage,
+        description: err.message,
+      })
+    },
+  })
+
+  // Poll for token query
+  const { data: tokenData, error: pollingError } = useQuery({
+    queryKey: ['device-token', deviceCode],
+    queryFn: async () => {
+      if (!deviceCode) return null
+
+      // Get config from API
+      const configRes = await fetch('/api/config')
+      const config = await configRes.json()
+      
+      const response = await fetch(`${config.hydraPublicUrl}/oauth2/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
+          device_code: deviceCode,
+          client_id: config.clientId,
+          client_secret: config.clientSecret,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setShouldPoll(false)
+        toast.success('Authorization Successful', {
+          description: 'Device authorization completed and access token received.',
+        })
+        return data
+      } else if (data.error === 'authorization_pending') {
+        // Continue polling - throw to retry
+        throw new Error('authorization_pending')
+      } else {
+        setShouldPoll(false)
+        const errorMsg = data.error_description || data.error || 'Token request failed'
+        throw new Error(errorMsg)
+      }
+    },
+    enabled: shouldPoll && !!deviceCode,
+    refetchInterval: (query: any) => {
+      // Stop polling if we got the token or if there's a non-pending error
+      if (query.state.data) {
+        return false
+      }
+      if (query.state.error && query.state.error instanceof Error && query.state.error.message !== 'authorization_pending') {
+        return false
+      }
+      // Poll every 5 seconds
+      return 5000
+    },
+    retry: (failureCount: number, error: any) => {
+      // Keep retrying if it's authorization_pending, otherwise stop
+      if (error instanceof Error && error.message === 'authorization_pending') {
+        return true
+      }
+      return false
+    },
+    retryDelay: 5000,
+    gcTime: 0, // Don't cache this
+  })
+
+  // Handle polling errors
+  useEffect(() => {
+    if (pollingError && pollingError instanceof Error && pollingError.message !== 'authorization_pending') {
+      toast.error('Token Request Failed', {
+        description: pollingError.message,
       })
     }
+  }, [pollingError])
+
+  function requestDeviceCode() {
+    requestDeviceCodeMutation.mutate()
   }
 
-  async function startPolling() {
+  function startPolling() {
     if (!deviceCode) return
-
-    setPolling(true)
-    setError(null)
-
-    const pollInterval = setInterval(async () => {
-      try {
-        // Get config from API
-        const configRes = await fetch('/api/config')
-        const config = await configRes.json()
-        
-        const response = await fetch(`${config.hydraPublicUrl}/oauth2/token`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
-            device_code: deviceCode,
-            client_id: config.clientId,
-            client_secret: config.clientSecret,
-          }),
-        })
-
-        const data = await response.json()
-
-        if (response.ok) {
-          clearInterval(pollInterval)
-          setPolling(false)
-          setTokenData(data)
-          toast.success('Authorization Successful', {
-            description: 'Device authorization completed and access token received.',
-          })
-        } else if (data.error === 'authorization_pending') {
-          // Continue polling
-        } else {
-          clearInterval(pollInterval)
-          setPolling(false)
-          const errorMsg = data.error_description || data.error || 'Token request failed'
-          setError(errorMsg)
-          toast.error('Token Request Failed', {
-            description: errorMsg,
-          })
-        }
-      } catch (err) {
-        clearInterval(pollInterval)
-        setPolling(false)
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-        setError(errorMessage)
-        toast.error('Polling Error', {
-          description: errorMessage,
-        })
-      }
-    }, 5000) // Poll every 5 seconds
-
-    // Stop polling after 5 minutes
-    setTimeout(() => {
-      clearInterval(pollInterval)
-      setPolling(false)
-      if (!tokenData) {
-        const timeoutMsg = 'Polling timeout. Please try again.'
-        setError(timeoutMsg)
-        toast.error('Polling Timeout', {
-          description: timeoutMsg,
-        })
-      }
-    }, 5 * 60 * 1000)
+    setShouldPoll(true)
   }
 
   return (
@@ -149,14 +161,14 @@ export default function DeviceDemoPage() {
         <p className="mb-4">Click the button below to request device and user codes:</p>
         <button
           onClick={requestDeviceCode}
-          disabled={!!deviceCode}
+          disabled={!!deviceCode || requestDeviceCodeMutation.isPending}
           className="px-4 py-2 bg-brand-solid text-white rounded hover:bg-brand-solid_hover disabled:opacity-50"
         >
-          Request Device & User Codes
+          {requestDeviceCodeMutation.isPending ? 'Requesting...' : 'Request Device & User Codes'}
         </button>
-        {error && (
+        {requestDeviceCodeMutation.isError && (
           <div className="mt-4 p-4 bg-error-secondary border border-error text-error-primary rounded">
-            {error}
+            {requestDeviceCodeMutation.error instanceof Error ? requestDeviceCodeMutation.error.message : 'Unknown error'}
           </div>
         )}
       </div>
@@ -176,10 +188,10 @@ export default function DeviceDemoPage() {
           </p>
           <button
             onClick={startPolling}
-            disabled={polling}
+            disabled={shouldPoll}
             className="px-4 py-2 bg-success-solid text-white rounded hover:bg-success-solid_hover disabled:opacity-50"
           >
-            {polling ? 'Polling for Token...' : 'Start Polling for Token'}
+            {shouldPoll ? 'Polling for Token...' : 'Start Polling for Token'}
           </button>
         </div>
       )}

@@ -6,7 +6,8 @@ import {
     Key01, 
     Settings01,
     FileCode02,
-    Server01
+    Server01,
+    User01
 } from "@untitledui/icons";
 
 export type NavigationSection = {
@@ -53,6 +54,11 @@ export const navigationItems: NavigationSection[] = [
     {
         label: "Settings",
         items: [
+            {
+                label: "Profile",
+                href: "/profile",
+                icon: User01,
+            },
             {
                 label: "Configuration",
                 href: "/config",

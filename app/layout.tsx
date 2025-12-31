@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { RouteProvider } from '@/providers/router-provider';
 import { ThemeProvider } from '@/providers/theme-provider';
+import { QueryProvider } from '@/providers/query-provider';
+import { AuthProvider } from '@/providers/auth-provider';
 import { SidebarLayout } from '@/app/components/sidebar-layout';
 import { navigationItems } from '@/lib/navigation';
 import { Toaster } from '@/components/application/notifications/toaster';
@@ -33,10 +35,14 @@ export default function RootLayout({
 
         <RouteProvider>
           <ThemeProvider>
-            <SidebarLayout navigationItems={navigationItems}>
-              {children}
-            </SidebarLayout>
-            <Toaster />
+            <QueryProvider>
+              <AuthProvider>
+                <SidebarLayout navigationItems={navigationItems}>
+                  {children}
+                </SidebarLayout>
+                <Toaster />
+              </AuthProvider>
+            </QueryProvider>
           </ThemeProvider>
         </RouteProvider>
       </body>

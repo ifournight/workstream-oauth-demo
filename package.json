@@ -10,6 +10,13 @@
     "lint": "next lint",
     "create-client": "bun run scripts/create-client.ts",
     "update-client": "bun run scripts/update-client.ts",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:e2e": "cypress run",
+    "test:e2e:open": "cypress open",
+    "test:verify": "bun run scripts/verify-tests.ts",
     "test:auth-code": "bun run demos/auth-code-flow.ts",
     "test:device": "bun run demos/device-flow.ts",
     "test:client-credentials": "bun run demos/client-credentials-flow.ts"
@@ -21,8 +28,12 @@
     "@react-stately/utils": "^3.10.8",
     "@tailwindcss/postcss": "^4.1.18",
     "@tailwindcss/typography": "^0.5.19",
+    "@tanstack/react-query": "^5.62.0",
+    "@tanstack/react-query-devtools": "^5.62.0",
     "@untitledui/file-icons": "^0.0.9",
     "@untitledui/icons": "^0.0.19",
+    "iron-session": "^8.0.0",
+    "jose": "^5.9.0",
     "next": "^15.1.0",
     "next-themes": "^0.4.6",
     "react": "^19.0.0",
@@ -35,13 +46,22 @@
     "tailwindcss-react-aria-components": "^2.0.1"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/react": "^14.1.2",
+    "@testing-library/user-event": "^14.5.1",
     "@types/bun": "latest",
     "@types/node": "^20.11.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.19",
+    "cypress": "^13.6.0",
+    "jsdom": "^23.0.1",
+    "msw": "^2.0.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vite-tsconfig-paths": "^4.2.1",
+    "vitest": "^1.0.4"
   }
 }

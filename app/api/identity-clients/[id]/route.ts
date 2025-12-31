@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { config } from '@/lib/config'
+import { getIdentityIdFromSession } from '@/lib/session'
 
 // GET /api/identity-clients/:id - Get a single identity client
 export async function GET(
@@ -14,16 +15,17 @@ export async function GET(
       )
     }
 
-    const clientId = params.id
-    const { searchParams } = new URL(request.url)
-    const identityId = searchParams.get('identity_id')
+    // Get identity ID from session
+    const identityId = await getIdentityIdFromSession()
     
     if (!identityId) {
       return NextResponse.json(
-        { error: 'identity_id query parameter is required' },
-        { status: 400 }
+        { error: 'Authentication required. Please log in.' },
+        { status: 401 }
       )
     }
+
+    const clientId = params.id
 
     const response = await fetch(
       `${config.umsBaseUrl}/oauth-apps/v1/${clientId}?owner_identity_id=${encodeURIComponent(identityId)}`,
@@ -78,16 +80,17 @@ export async function PUT(
       )
     }
 
-    const clientId = params.id
-    const { searchParams } = new URL(request.url)
-    const identityId = searchParams.get('identity_id')
+    // Get identity ID from session
+    const identityId = await getIdentityIdFromSession()
     
     if (!identityId) {
       return NextResponse.json(
-        { error: 'identity_id query parameter is required' },
-        { status: 400 }
+        { error: 'Authentication required. Please log in.' },
+        { status: 401 }
       )
     }
+
+    const clientId = params.id
 
     const clientData = await request.json()
     
@@ -133,16 +136,17 @@ export async function DELETE(
       )
     }
 
-    const clientId = params.id
-    const { searchParams } = new URL(request.url)
-    const identityId = searchParams.get('identity_id')
+    // Get identity ID from session
+    const identityId = await getIdentityIdFromSession()
     
     if (!identityId) {
       return NextResponse.json(
-        { error: 'identity_id query parameter is required' },
-        { status: 400 }
+        { error: 'Authentication required. Please log in.' },
+        { status: 401 }
       )
     }
+
+    const clientId = params.id
 
     const response = await fetch(
       `${config.umsBaseUrl}/oauth-apps/v1/${clientId}?owner_identity_id=${encodeURIComponent(identityId)}`,
