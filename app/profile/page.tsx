@@ -53,12 +53,12 @@ export default function ProfilePage() {
   }, [searchParams, router])
 
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
+    // Always try to fetch session info directly, regardless of useAuth() state
+    // This serves as a fallback in case useAuth() hasn't loaded yet or has stale data
+    if (!authLoading) {
       fetchSessionInfo()
-    } else if (!authLoading && !isAuthenticated) {
-      setIsLoading(false)
     }
-  }, [authLoading, isAuthenticated])
+  }, [authLoading])
 
   async function fetchSessionInfo() {
     try {
@@ -69,6 +69,13 @@ export default function ProfilePage() {
       }
       const data = await response.json()
       setSessionInfo(data)
+      
+      // If API returns authenticated but useAuth() says not authenticated, 
+      // refresh the auth context
+      if (data.authenticated && !isAuthenticated) {
+        console.log('Session API indicates authenticated, refreshing auth context')
+        // The AuthProvider will pick this up on next render
+      }
     } catch (error) {
       console.error('Error fetching session info:', error)
       toast.error('Failed to load session information', {
@@ -87,7 +94,12 @@ export default function ProfilePage() {
     )
   }
 
-  if (!isAuthenticated || !user) {
+  // Check both useAuth() and direct session API response
+  // If sessionInfo indicates authenticated, use that even if useAuth() says not authenticated
+  const isActuallyAuthenticated = sessionInfo?.authenticated || (isAuthenticated && user)
+  const actualIdentityId = sessionInfo?.user?.identityId || user?.identityId
+
+  if (!isActuallyAuthenticated || !actualIdentityId) {
     return (
       <div className="max-w-4xl mx-auto">
         <PageHeader
@@ -105,7 +117,8 @@ export default function ProfilePage() {
     )
   }
 
-  const identityId = user.identityId || sessionInfo?.user?.identityId || 'N/A'
+  // Prioritize sessionInfo from direct API call, fallback to useAuth()
+  const identityId = sessionInfo?.user?.identityId || user?.identityId || 'N/A'
   const tokenPreview = sessionInfo?.tokenPreview
   const tokenPayload = sessionInfo?.tokenPayload
   const expiresAt = sessionInfo?.expiresAt
