@@ -1,59 +1,33 @@
 import { redirect } from 'next/navigation'
-import { cookies } from 'next/headers'
 import { config } from '@/lib/config'
-import { generateCodeVerifier, generateCodeChallenge, generateState } from '@/lib/oauth'
 import { PageHeader } from '@/app/components/page-header'
 
-export default async function AuthPage() {
+interface SearchParams {
+  error?: string
+}
+
+export default async function AuthPage({
+  searchParams,
+}: {
+  searchParams: SearchParams
+}) {
   if (!config.clientId) {
     return (
       <div className="max-w-2xl">
         <PageHeader
           title="Configuration Error"
           breadcrumbs={[
-            { label: 'Flows', href: '#' },
+            { label: 'Flows', href: '/auth' },
             { label: 'Authorization Code' },
           ]}
+          description="Client ID is not configured. Please set it as an environment variable to use the Authorization Code flow."
         />
         <p>CLIENT_ID not configured. Please set it as an environment variable.</p>
       </div>
     )
   }
 
-  // Generate PKCE parameters
-  const codeVerifier = generateCodeVerifier()
-  const codeChallenge = generateCodeChallenge(codeVerifier)
-  const state = generateState()
-
-  // Store state and code_verifier in cookie (expires in 10 minutes)
-  const cookieStore = await cookies()
-  cookieStore.set('oauth_state', state, {
-    httpOnly: true,
-    maxAge: 600,
-    path: '/',
-    sameSite: 'lax',
-  })
-  cookieStore.set('code_verifier', codeVerifier, {
-    httpOnly: true,
-    maxAge: 600,
-    path: '/',
-    sameSite: 'lax',
-  })
-
-  // Construct redirect URI
-  const redirectUri = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/callback`
-  const scope = 'openid offline'
-
-  const authUrl = `${config.hydraPublicUrl}/oauth2/auth?` +
-    `client_id=${encodeURIComponent(config.clientId)}&` +
-    `response_type=code&` +
-    `scope=${encodeURIComponent(scope)}&` +
-    `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-    `state=${state}&` +
-    `prompt=consent&` +
-    `code_challenge=${encodeURIComponent(codeChallenge)}&` +
-    `code_challenge_method=S256`
-
-  redirect(authUrl)
+  // Redirect to route handler that will set cookies and redirect to OAuth provider
+  redirect('/api/auth/init')
 }
 

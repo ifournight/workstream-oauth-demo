@@ -24,10 +24,11 @@ export default async function CallbackPage({
         <PageHeader
           title="Authorization Error"
           breadcrumbs={[
-            { label: 'Flows', href: '#' },
+            { label: 'Flows', href: '/auth' },
             { label: 'Authorization Code' },
             { label: 'Callback' },
           ]}
+          description={`Authorization failed: ${error}. ${error_description || 'Please try again.'}`}
         />
         <p className="mb-2"><strong>Error:</strong> {error}</p>
         <p className="mb-4"><strong>Description:</strong> {error_description || 'No description'}</p>
@@ -44,10 +45,11 @@ export default async function CallbackPage({
         <PageHeader
           title="No Authorization Code"
           breadcrumbs={[
-            { label: 'Flows', href: '#' },
+            { label: 'Flows', href: '/auth' },
             { label: 'Authorization Code' },
             { label: 'Callback' },
           ]}
+          description="No authorization code was received in the callback. Please restart the authorization flow."
         />
         <p className="mb-4">No authorization code was received in the callback.</p>
         <Link href="/" className="text-brand-primary hover:underline">
@@ -67,10 +69,11 @@ export default async function CallbackPage({
         <PageHeader
           title="State Mismatch"
           breadcrumbs={[
-            { label: 'Flows', href: '#' },
+            { label: 'Flows', href: '/auth' },
             { label: 'Authorization Code' },
             { label: 'Callback' },
           ]}
+          description="State parameter does not match. This may indicate a CSRF attack or expired session. Please restart the authorization flow."
         />
         <p className="mb-4">State parameter does not match. Possible CSRF attack or expired session.</p>
         <p className="mb-2"><strong>Received state:</strong> {state || 'null'}</p>
@@ -88,10 +91,11 @@ export default async function CallbackPage({
         <PageHeader
           title="PKCE Error"
           breadcrumbs={[
-            { label: 'Flows', href: '#' },
+            { label: 'Flows', href: '/auth' },
             { label: 'Authorization Code' },
             { label: 'Callback' },
           ]}
+          description="Code verifier is missing. Please restart the authorization flow to generate a new code verifier."
         />
         <p className="mb-4">Code verifier is missing. Please restart the authorization flow.</p>
         <Link href="/" className="text-brand-primary hover:underline">
@@ -132,10 +136,11 @@ export default async function CallbackPage({
           <PageHeader
             title="Token Exchange Failed"
             breadcrumbs={[
-              { label: 'Flows', href: '#' },
+              { label: 'Flows', href: '/auth' },
               { label: 'Authorization Code' },
               { label: 'Callback' },
             ]}
+            description="Failed to exchange authorization code for access token. Please check the error details below."
           />
           <pre className="bg-secondary p-4 rounded overflow-auto">
             {JSON.stringify(tokenData, null, 2)}
@@ -147,9 +152,8 @@ export default async function CallbackPage({
       )
     }
 
-    // Clean up cookies (already have cookieStore from above)
-    cookieStore.delete('oauth_state')
-    cookieStore.delete('code_verifier')
+    // Note: Cookies will expire automatically after 10 minutes (maxAge: 600)
+    // Cookie deletion is not allowed in page components in Next.js 15
 
     // Test API call with the access token
     let apiResult: any = null
@@ -183,12 +187,13 @@ export default async function CallbackPage({
     return (
       <div className="max-w-4xl">
         <PageHeader
-          title="✓ Authorization Code Flow Successful!"
+          title="Authorization Successful"
           breadcrumbs={[
-            { label: 'Flows', href: '#' },
+            { label: 'Flows', href: '/auth' },
             { label: 'Authorization Code' },
             { label: 'Callback' },
           ]}
+          description="Authorization code flow completed successfully. Access token and refresh token have been received."
         />
 
         <div className="mb-8">
@@ -241,10 +246,11 @@ export default async function CallbackPage({
         <PageHeader
           title="Token Exchange Error"
           breadcrumbs={[
-            { label: 'Flows', href: '#' },
+            { label: 'Flows', href: '/auth' },
             { label: 'Authorization Code' },
             { label: 'Callback' },
           ]}
+          description="An error occurred during token exchange. Please check the error message below."
         />
         <p className="mb-4">{error instanceof Error ? error.message : 'Unknown error'}</p>
         <Link href="/" className="text-brand-primary hover:underline">

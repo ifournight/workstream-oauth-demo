@@ -1,9 +1,7 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
-import { ChevronRight } from "@untitledui/icons";
-import { cx } from "@/utils/cx";
+import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import type { BreadcrumbItem } from "@/types";
 
 interface PageHeaderProps {
@@ -11,51 +9,38 @@ interface PageHeaderProps {
     breadcrumbs?: BreadcrumbItem[];
     description?: string;
     actions?: React.ReactNode;
+    children?: React.ReactNode;
 }
 
-export function PageHeader({ title, breadcrumbs, description, actions }: PageHeaderProps) {
+export function PageHeader({ title, breadcrumbs, description, actions, children }: PageHeaderProps) {
     return (
         <div className="mb-8">
             {/* Breadcrumbs */}
             {breadcrumbs && breadcrumbs.length > 0 && (
-                <nav className="mb-4" aria-label="Breadcrumb">
-                    <ol className="flex items-center space-x-2 text-sm">
-                        {breadcrumbs.map((crumb, index) => {
-                            const isLast = index === breadcrumbs.length - 1;
-                            return (
-                                <li key={index} className="flex items-center">
-                                    {index > 0 && (
-                                        <ChevronRight className="mx-2 size-4 text-tertiary" aria-hidden="true" />
-                                    )}
-                                    {isLast || !crumb.href ? (
-                                        <span className={cx("font-medium", isLast ? "text-primary" : "text-tertiary")}>
-                                            {crumb.label}
-                                        </span>
-                                    ) : (
-                                        <Link
-                                            href={crumb.href}
-                                            className="text-tertiary hover:text-tertiary_hover transition-colors"
-                                        >
-                                            {crumb.label}
-                                        </Link>
-                                    )}
-                                </li>
-                            );
-                        })}
-                    </ol>
-                </nav>
+                <Breadcrumbs className="mb-4">
+                    {breadcrumbs.map((crumb, index) => (
+                        <Breadcrumbs.Item key={index} href={crumb.href}>
+                            {crumb.label}
+                        </Breadcrumbs.Item>
+                    ))}
+                </Breadcrumbs>
             )}
 
             {/* Title and Actions */}
-            <div className="flex items-start justify-between">
-                <div>
+            <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
                     <h1 className="text-3xl font-bold text-primary">{title}</h1>
                     {description && (
                         <p className="mt-2 text-md text-tertiary">{description}</p>
                     )}
+                    {children && (
+                        <div className="mt-4">
+                            {children}
+                        </div>
+                    )}
                 </div>
                 {actions && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                         {actions}
                     </div>
                 )}

@@ -8,8 +8,9 @@ import { LoadingIndicator } from '@/components/application/loading-indicator/loa
 import { EmptyState } from '@/components/application/empty-state/empty-state'
 import { Modal } from '@/app/components/ui/modal'
 import { Input } from '@/components/base/input/input'
-import { Alert } from '@/app/components/ui/alert'
+import { IconNotification } from '@/components/application/notifications/notifications'
 import { PageHeader } from '@/app/components/page-header'
+import { toast } from 'sonner'
 
 interface Client {
   client_id?: string
@@ -33,7 +34,6 @@ const columns = [
 export default function IdentityClientsPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [identityId, setIdentityId] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
@@ -42,6 +42,9 @@ export default function IdentityClientsPage() {
   async function loadClients() {
     if (!identityId.trim()) {
       setInputError('Please enter an Identity ID')
+      toast.error('Identity ID Required', {
+        description: 'Please enter an Identity ID to load clients.',
+      })
       return
     }
 
@@ -49,12 +52,10 @@ export default function IdentityClientsPage() {
 
     try {
       setLoading(true)
-      setError(null)
       const response = await fetch(`/api/identity-clients?identity_id=${encodeURIComponent(identityId)}`)
       const data = await response.json()
       
       if (!response.ok) {
-        // Show more detailed error message
         let errorMsg = data.error || 'Failed to load clients'
         if (data.details) {
           errorMsg += ` (${data.details})`
@@ -69,10 +70,15 @@ export default function IdentityClientsPage() {
           }))
         : []
       setClients(clientsWithId)
+      toast.success('Clients Loaded', {
+        description: `Successfully loaded ${clientsWithId.length} client${clientsWithId.length === 1 ? '' : 's'}.`,
+      })
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      setError(errorMessage)
       setClients([])
+      toast.error('Failed to Load Clients', {
+        description: errorMessage,
+      })
       console.error('Error loading clients:', err)
     } finally {
       setLoading(false)
@@ -85,7 +91,9 @@ export default function IdentityClientsPage() {
     }
 
     if (!identityId.trim()) {
-      alert('Identity ID is required')
+      toast.error('Identity ID Required', {
+        description: 'Identity ID is required to delete clients.',
+      })
       return
     }
 
@@ -103,8 +111,13 @@ export default function IdentityClientsPage() {
       }
 
       await loadClients()
+      toast.success('Client Deleted', {
+        description: `Client ${clientId} has been successfully deleted.`,
+      })
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Unknown error')
+      toast.error('Failed to Delete Client', {
+        description: err instanceof Error ? err.message : 'Unknown error',
+      })
     }
   }
 
@@ -115,7 +128,9 @@ export default function IdentityClientsPage() {
 
   function handleCreate() {
     if (!identityId.trim()) {
-      alert('Please enter an Identity ID first')
+      toast.error('Identity ID Required', {
+        description: 'Please enter an Identity ID first.',
+      })
       return
     }
     setEditingClient(null)
@@ -127,49 +142,39 @@ export default function IdentityClientsPage() {
       <PageHeader
         title="Identity-Specific Clients"
         breadcrumbs={[
-          { label: 'Clients', href: '#' },
+          { label: 'Clients', href: '/clients' },
           { label: 'Identity-Specific Clients' },
         ]}
-        description="Manage OAuth clients for a specific identity. Requires identity_id as input parameter."
+        description="Manage OAuth clients scoped to a specific identity. Enter an identity UUID to view and manage associated clients."
         actions={
           identityId && (
             <Button color="primary" onClick={handleCreate}>
-              + Create Identity Client
+              + Create Client
             </Button>
           )
         }
-      />
-
-      <Card className="mb-6">
-        <CardContent>
-          <div className="flex gap-2">
-            <Input
-              type="text"
-              value={identityId}
-              onChange={(value: string) => {
-                setIdentityId(value)
-                if (inputError && value.trim()) {
-                  setInputError(null)
-                }
-              }}
-              placeholder="Enter identity UUID"
-              className="flex-1"
-              isRequired
-              isInvalid={!!inputError}
-              hint={inputError || undefined}
-            />
-            <Button onClick={loadClients} isDisabled={loading} color="secondary">
-              {loading ? 'Loading...' : 'Load Clients'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {error && (
-        <Alert variant="error" className="mb-6">
-          {error}
-        </Alert>
-      )}
+      >
+        <div className="flex gap-2 mt-4">
+          <Input
+            type="text"
+            value={identityId}
+            onChange={(value: string) => {
+              setIdentityId(value)
+              if (inputError && value.trim()) {
+                setInputError(null)
+              }
+            }}
+            placeholder="Enter identity UUID"
+            className="flex-1 max-w-md"
+            isRequired
+            isInvalid={!!inputError}
+            hint={inputError || undefined}
+          />
+          <Button onClick={loadClients} isDisabled={loading || !identityId.trim()} color="primary">
+            {loading ? 'Loading...' : 'Load Clients'}
+          </Button>
+        </div>
+      </PageHeader>
 
 
       {loading ? (
@@ -180,7 +185,7 @@ export default function IdentityClientsPage() {
             </div>
           </CardContent>
         </Card>
-      ) : !identityId ? (
+      ) : !identityId.trim() ? (
         <Card>
           <CardContent>
             <div className="py-12">
@@ -347,12 +352,21 @@ function IdentityClientModal({
       }
 
       if (data.client_secret) {
-        alert(`Client created! Secret: ${data.client_secret} (Save this! It will not be shown again.)`)
+        toast.success('Client Created', {
+          description: `Client secret: ${data.client_secret}. Save this - it will not be shown again!`,
+          duration: 10000,
+        })
+      } else {
+        toast.success('Client Updated', {
+          description: 'Client has been successfully updated.',
+        })
       }
 
       onSave()
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Unknown error')
+      toast.error('Failed to Save Client', {
+        description: err instanceof Error ? err.message : 'Unknown error',
+      })
     } finally {
       setSaving(false)
     }

@@ -121,18 +121,18 @@
     --color-alpha-white: rgb(255 255 255);
     --color-alpha-black: rgb(0 0 0);
 
-    --color-brand-25: rgb(252 250 255);
-    --color-brand-50: rgb(249 245 255);
-    --color-brand-100: rgb(244 235 255);
-    --color-brand-200: rgb(233 215 254);
-    --color-brand-300: rgb(214 187 251);
-    --color-brand-400: rgb(182 146 246);
-    --color-brand-500: rgb(158 119 237);
-    --color-brand-600: rgb(127 86 217);
-    --color-brand-700: rgb(105 65 198);
-    --color-brand-800: rgb(83 56 158);
-    --color-brand-900: rgb(66 48 125);
-    --color-brand-950: rgb(44 28 95);
+    --color-brand-25: rgb(245 251 255);
+    --color-brand-50: rgb(240 249 255);
+    --color-brand-100: rgb(224 242 254);
+    --color-brand-200: rgb(185 230 254);
+    --color-brand-300: rgb(124 212 253);
+    --color-brand-400: rgb(54 191 250);
+    --color-brand-500: rgb(11 165 236);
+    --color-brand-600: rgb(0 134 201);
+    --color-brand-700: rgb(2 106 162);
+    --color-brand-800: rgb(6 89 134);
+    --color-brand-900: rgb(11 74 111);
+    --color-brand-950: rgb(6 44 65);
 
     --color-error-25: rgb(255 251 250);
     --color-error-50: rgb(254 243 242);

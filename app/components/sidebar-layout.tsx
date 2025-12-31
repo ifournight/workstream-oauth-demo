@@ -3,14 +3,14 @@
 import React, { useState } from "react";
 import { usePathname } from "next/navigation";
 import { UntitledLogo } from "@/components/foundations/logo/untitledui-logo";
-import { NavList } from "@/components/application/app-navigation/base-components/nav-list";
+import { SidebarNavigationSectionsSubheadings } from "@/components/application/app-navigation/sidebar-navigation/sidebar-sections-subheadings";
 import { MobileNavigationHeader } from "@/components/application/app-navigation/base-components/mobile-header";
 import { ThemeToggle } from "@/app/components/theme-toggle";
-import type { NavItemType } from "@/components/application/app-navigation/config";
+import type { NavigationSection } from "@/lib/navigation";
 
 interface SidebarLayoutProps {
     children: React.ReactNode;
-    navigationItems: NavItemType[];
+    navigationItems: NavigationSection[];
 }
 
 export function SidebarLayout({ children, navigationItems }: SidebarLayoutProps) {
@@ -24,9 +24,9 @@ export function SidebarLayout({ children, navigationItems }: SidebarLayoutProps)
                 <div className="flex h-16 items-center border-b border-secondary px-4">
                     <UntitledLogo />
                 </div>
-                <nav className="flex-1 overflow-y-auto py-4">
-                    <NavList activeUrl={pathname} items={navigationItems} />
-                </nav>
+                <div className="flex-1 overflow-y-auto py-4">
+                    <SidebarNavigationSectionsSubheadings activeUrl={pathname} items={navigationItems} />
+                </div>
                 <div className="border-t border-secondary p-4 flex justify-center">
                     <ThemeToggle />
                 </div>
@@ -38,7 +38,7 @@ export function SidebarLayout({ children, navigationItems }: SidebarLayoutProps)
                     <div className="mb-4">
                         <UntitledLogo />
                     </div>
-                    <NavList activeUrl={pathname} items={navigationItems} />
+                    <SidebarNavigationSectionsSubheadings activeUrl={pathname} items={navigationItems} />
                     <div className="mt-auto pt-4 border-t border-secondary flex justify-center">
                         <ThemeToggle />
                     </div>

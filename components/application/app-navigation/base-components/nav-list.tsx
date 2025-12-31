@@ -52,6 +52,7 @@ export const NavList = ({ activeUrl, items, className }: NavListProps) => {
                                             <NavItemBase
                                                 href={childItem.href}
                                                 badge={childItem.badge}
+                                                icon={childItem.icon}
                                                 type="collapsible-child"
                                                 current={activeUrl === childItem.href}
                                             >

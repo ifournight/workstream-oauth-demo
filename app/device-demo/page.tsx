@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { PageHeader } from '@/app/components/page-header'
+import { toast } from 'sonner'
 
 export default function DeviceDemoPage() {
   const [deviceCode, setDeviceCode] = useState('')
@@ -38,8 +39,15 @@ export default function DeviceDemoPage() {
       setDeviceCode(data.device_code)
       setUserCode(data.user_code)
       setVerificationUri(data.verification_uri)
+      toast.success('Device Code Generated', {
+        description: 'Device and user codes have been generated. Please visit the verification URI and enter the user code.',
+      })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      setError(errorMessage)
+      toast.error('Failed to Generate Device Code', {
+        description: errorMessage,
+      })
     }
   }
 
@@ -74,17 +82,28 @@ export default function DeviceDemoPage() {
           clearInterval(pollInterval)
           setPolling(false)
           setTokenData(data)
+          toast.success('Authorization Successful', {
+            description: 'Device authorization completed and access token received.',
+          })
         } else if (data.error === 'authorization_pending') {
           // Continue polling
         } else {
           clearInterval(pollInterval)
           setPolling(false)
-          setError(data.error_description || data.error || 'Token request failed')
+          const errorMsg = data.error_description || data.error || 'Token request failed'
+          setError(errorMsg)
+          toast.error('Token Request Failed', {
+            description: errorMsg,
+          })
         }
       } catch (err) {
         clearInterval(pollInterval)
         setPolling(false)
-        setError(err instanceof Error ? err.message : 'Unknown error')
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+        setError(errorMessage)
+        toast.error('Polling Error', {
+          description: errorMessage,
+        })
       }
     }, 5000) // Poll every 5 seconds
 
@@ -93,7 +112,11 @@ export default function DeviceDemoPage() {
       clearInterval(pollInterval)
       setPolling(false)
       if (!tokenData) {
-        setError('Polling timeout. Please try again.')
+        const timeoutMsg = 'Polling timeout. Please try again.'
+        setError(timeoutMsg)
+        toast.error('Polling Timeout', {
+          description: timeoutMsg,
+        })
       }
     }, 5 * 60 * 1000)
   }
@@ -103,10 +126,10 @@ export default function DeviceDemoPage() {
       <PageHeader
         title="Device Authorization Flow"
         breadcrumbs={[
-          { label: 'Flows', href: '#' },
+          { label: 'Flows', href: '/device-demo' },
           { label: 'Device Authorization' },
         ]}
-        description="OAuth 2.0 device authorization flow for devices with limited input capabilities"
+        description="OAuth 2.0 device authorization flow for devices with limited input capabilities. Users authorize on a separate device using a user code."
       />
 
       <div className="mb-6 p-4 bg-brand-primary border border-brand rounded-lg">

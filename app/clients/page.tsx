@@ -8,8 +8,8 @@ import { LoadingIndicator } from '@/components/application/loading-indicator/loa
 import { EmptyState } from '@/components/application/empty-state/empty-state'
 import { Modal } from '@/app/components/ui/modal'
 import { Input } from '@/components/base/input/input'
-import { Alert } from '@/app/components/ui/alert'
 import { PageHeader } from '@/app/components/page-header'
+import { toast } from 'sonner'
 
 interface Client {
   client_id?: string
@@ -32,7 +32,6 @@ const columns = [
 export default function GlobalClientsPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
 
@@ -43,7 +42,6 @@ export default function GlobalClientsPage() {
   async function loadClients() {
     try {
       setLoading(true)
-      setError(null)
       const response = await fetch('/api/clients')
       if (!response.ok) {
         const data = await response.json()
@@ -57,8 +55,15 @@ export default function GlobalClientsPage() {
           }))
         : []
       setClients(clientsWithId)
+      if (clientsWithId.length > 0) {
+        toast.success('Clients Loaded', {
+          description: `Successfully loaded ${clientsWithId.length} client${clientsWithId.length === 1 ? '' : 's'}.`,
+        })
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      toast.error('Failed to Load Clients', {
+        description: err instanceof Error ? err.message : 'Unknown error',
+      })
     } finally {
       setLoading(false)
     }
@@ -80,8 +85,13 @@ export default function GlobalClientsPage() {
       }
 
       await loadClients()
+      toast.success('Client Deleted', {
+        description: `Client ${clientId} has been successfully deleted.`,
+      })
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Unknown error')
+      toast.error('Failed to Delete Client', {
+        description: err instanceof Error ? err.message : 'Unknown error',
+      })
     }
   }
 
@@ -100,22 +110,16 @@ export default function GlobalClientsPage() {
       <PageHeader
         title="Global Clients"
         breadcrumbs={[
-          { label: 'Clients', href: '#' },
+          { label: 'Clients', href: '/clients' },
           { label: 'Global Clients' },
         ]}
-        description="Manage all OAuth clients directly in Hydra. No identity filtering - shows all clients."
+        description="Manage all OAuth clients in Hydra without identity filtering. View, create, edit, and delete clients across all identities."
         actions={
           <Button color="primary" onClick={handleCreate}>
             + Create Client
           </Button>
         }
       />
-
-      {error && (
-        <Alert variant="error" className="mb-6">
-          {error}
-        </Alert>
-      )}
 
       {loading ? (
         <Card>
@@ -278,12 +282,21 @@ function ClientModal({
       }
 
       if (data.client_secret) {
-        alert(`Client created! Secret: ${data.client_secret} (Save this! It will not be shown again.)`)
+        toast.success('Client Created', {
+          description: `Client secret: ${data.client_secret}. Save this - it will not be shown again!`,
+          duration: 10000,
+        })
+      } else {
+        toast.success('Client Updated', {
+          description: 'Client has been successfully updated.',
+        })
       }
 
       onSave()
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Unknown error')
+      toast.error('Failed to Save Client', {
+        description: err instanceof Error ? err.message : 'Unknown error',
+      })
     } finally {
       setSaving(false)
     }

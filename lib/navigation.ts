@@ -6,14 +6,17 @@ import {
     Key01, 
     Settings01,
     FileCode02,
-    Smartphone01,
     Server01
 } from "@untitledui/icons";
 
-export const navigationItems: NavItemType[] = [
+export type NavigationSection = {
+    label: string;
+    items: NavItemType[];
+};
+
+export const navigationItems: NavigationSection[] = [
     {
         label: "Clients",
-        icon: Users01,
         items: [
             {
                 label: "Global Clients",
@@ -29,7 +32,6 @@ export const navigationItems: NavItemType[] = [
     },
     {
         label: "Flows",
-        icon: FileCode02,
         items: [
             {
                 label: "Authorization Code",
@@ -39,7 +41,7 @@ export const navigationItems: NavItemType[] = [
             {
                 label: "Device Authorization",
                 href: "/device-demo",
-                icon: Smartphone01,
+                icon: FileCode02,
             },
             {
                 label: "Client Credentials",
@@ -49,9 +51,14 @@ export const navigationItems: NavItemType[] = [
         ],
     },
     {
-        label: "Configuration",
-        href: "/",
-        icon: Settings01,
+        label: "Settings",
+        items: [
+            {
+                label: "Configuration",
+                href: "/config",
+                icon: Settings01,
+            },
+        ],
     },
 ];
 

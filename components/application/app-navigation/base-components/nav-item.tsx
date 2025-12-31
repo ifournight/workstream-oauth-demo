@@ -49,7 +49,7 @@ export const NavItemBase = ({ current, type, badge, href, icon: Icon, children, 
     const labelElement = (
         <span
             className={cx(
-                "flex-1 text-md font-semibold text-secondary transition-inherit-all group-hover:text-secondary_hover",
+                "flex-1 text-sm font-semibold text-secondary transition-inherit-all group-hover:text-secondary_hover",
                 truncate && "truncate",
                 current && "text-secondary_hover",
             )}
@@ -85,6 +85,7 @@ export const NavItemBase = ({ current, type, badge, href, icon: Icon, children, 
                 onClick={onClick}
                 aria-current={current ? "page" : undefined}
             >
+                {iconElement}
                 {labelElement}
                 {externalIcon}
                 {badgeElement}

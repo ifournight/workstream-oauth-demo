@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { PageHeader } from '@/app/components/page-header'
+import { toast } from 'sonner'
 
 export default function ClientCredentialsDemoPage() {
   const [tokenData, setTokenData] = useState<any>(null)
@@ -33,8 +35,15 @@ export default function ClientCredentialsDemoPage() {
       }
 
       setTokenData(data)
+      toast.success('Access Token Received', {
+        description: 'Successfully obtained access token using client credentials.',
+      })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      setError(errorMessage)
+      toast.error('Failed to Get Token', {
+        description: errorMessage,
+      })
     } finally {
       setLoading(false)
     }
@@ -63,8 +72,21 @@ export default function ClientCredentialsDemoPage() {
       const result = await response.json()
 
       setApiResult(result)
+      if (result.success) {
+        toast.success('API Test Successful', {
+          description: `API call completed with status ${result.status}.`,
+        })
+      } else {
+        toast.error('API Test Failed', {
+          description: `API call failed with status ${result.status}.`,
+        })
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      setError(errorMessage)
+      toast.error('API Test Error', {
+        description: errorMessage,
+      })
     } finally {
       setLoading(false)
     }
@@ -75,10 +97,10 @@ export default function ClientCredentialsDemoPage() {
       <PageHeader
         title="Client Credentials Flow"
         breadcrumbs={[
-          { label: 'Flows', href: '#' },
+          { label: 'Flows', href: '/client-credentials-demo' },
           { label: 'Client Credentials' },
         ]}
-        description="Machine-to-machine flow (no user interaction). Uses UMS token endpoint"
+        description="Machine-to-machine OAuth 2.0 flow with no user interaction required. Uses the UMS token endpoint for server-to-server authentication."
       />
 
       <div className="mb-6 p-4 bg-brand-primary border border-brand rounded-lg">

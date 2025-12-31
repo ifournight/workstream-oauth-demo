@@ -4,6 +4,7 @@ import { RouteProvider } from '@/providers/router-provider';
 import { ThemeProvider } from '@/providers/theme-provider';
 import { SidebarLayout } from '@/app/components/sidebar-layout';
 import { navigationItems } from '@/lib/navigation';
+import { Toaster } from '@/components/application/notifications/toaster';
 import "@/styles/globals.css";
 
 const inter = Inter({
@@ -13,7 +14,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'OAuth 2.0 Verification Server',
+  title: 'Workstream OAuth apps',
   description: 'OAuth 2.0 verification server for Authorization Code, Device Authorization, and Client Credentials flows',
 }
 
@@ -35,6 +36,7 @@ export default function RootLayout({
             <SidebarLayout navigationItems={navigationItems}>
               {children}
             </SidebarLayout>
+            <Toaster />
           </ThemeProvider>
         </RouteProvider>
       </body>
