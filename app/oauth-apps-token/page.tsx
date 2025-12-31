@@ -29,6 +29,14 @@ interface TokenResponse {
   expires_in: number
 }
 
+interface ApiTestResult {
+  status?: number
+  statusText?: string
+  success?: boolean
+  data?: any
+  error?: string
+}
+
 export default function OAuthAppsTokenPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const { setBreadcrumbs } = useBreadcrumbs()
@@ -36,6 +44,8 @@ export default function OAuthAppsTokenPage() {
   const [selectedClientId, setSelectedClientId] = useState<string>('')
   const [clientSecret, setClientSecret] = useState('')
   const [tokenResponse, setTokenResponse] = useState<TokenResponse | null>(null)
+  const [apiResult, setApiResult] = useState<ApiTestResult | null>(null)
+  const [isTestingApi, setIsTestingApi] = useState(false)
 
   // Set breadcrumbs
   useEffect(() => {
@@ -125,9 +135,16 @@ export default function OAuthAppsTokenPage() {
     },
     onSuccess: (data: TokenResponse) => {
       setTokenResponse(data)
+      setApiResult(null) // Clear previous API test result
       toast.success('Access Token Received', {
         description: 'Successfully obtained access token using OAuth apps token flow.',
       })
+      // Automatically test API after successful token retrieval
+      if (data.access_token) {
+        setTimeout(() => {
+          testApi(data.access_token)
+        }, 500)
+      }
     },
     onError: (err: Error) => {
       toast.error('Failed to Get Token', {
@@ -155,6 +172,52 @@ export default function OAuthAppsTokenPage() {
   }
 
   const canRequestToken = selectedClientId && clientSecret.trim()
+
+  async function testApi(accessToken?: string) {
+    const token = accessToken || tokenResponse?.access_token
+    if (!token) {
+      toast.error('No Access Token', {
+        description: 'Cannot test API without an access token',
+      })
+      return
+    }
+
+    setIsTestingApi(true)
+    try {
+      const response = await fetch('/api/test-api', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ access_token: token }),
+      })
+
+      const result: ApiTestResult = await response.json()
+
+      setApiResult(result)
+
+      if (result.success) {
+        toast.success('API Test Successful', {
+          description: `Status: ${result.status} ${result.statusText || ''}`,
+        })
+      } else {
+        toast.error('API Test Failed', {
+          description: result.error || `Status: ${result.status} ${result.statusText || ''}`,
+        })
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      setApiResult({
+        success: false,
+        error: errorMessage,
+      })
+      toast.error('API Test Error', {
+        description: errorMessage,
+      })
+    } finally {
+      setIsTestingApi(false)
+    }
+  }
 
   return (
     <div className="max-w-4xl">
@@ -351,42 +414,106 @@ export default function OAuthAppsTokenPage() {
         </Tabs>
 
         {tokenResponse && (
-          <Card className="mt-6">
-            <CardContent className="pt-6">
-              <h2 className="text-xl font-semibold mb-4">Token Response</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-secondary mb-1 block">
-                    Access Token
-                  </label>
-                  <CodeSnippet code={tokenResponse.access_token} language="text" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
+          <>
+            <Card className="mt-6">
+              <CardContent className="pt-6">
+                <h2 className="text-xl font-semibold mb-4">Token Response</h2>
+                <div className="space-y-4">
                   <div>
                     <label className="text-sm font-medium text-secondary mb-1 block">
-                      Token Type
+                      Access Token
                     </label>
-                    <p className="text-primary">{tokenResponse.token_type}</p>
+                    <CodeSnippet code={tokenResponse.access_token} language="text" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-secondary mb-1 block">
+                        Token Type
+                      </label>
+                      <p className="text-primary">{tokenResponse.token_type}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-secondary mb-1 block">
+                        Expires In
+                      </label>
+                      <p className="text-primary">{tokenResponse.expires_in} seconds</p>
+                    </div>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-secondary mb-1 block">
-                      Expires In
+                      Full Response
                     </label>
-                    <p className="text-primary">{tokenResponse.expires_in} seconds</p>
+                    <CodeSnippet 
+                      code={JSON.stringify(tokenResponse, null, 2)} 
+                      language="json" 
+                    />
                   </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-secondary mb-1 block">
-                    Full Response
-                  </label>
-                  <CodeSnippet 
-                    code={JSON.stringify(tokenResponse, null, 2)} 
-                    language="json" 
-                  />
+              </CardContent>
+            </Card>
+
+            {/* API Test Section */}
+            <Card className="mt-6">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold">API Test</h2>
+                  <Button
+                    color="primary"
+                    size="md"
+                    onClick={() => testApi()}
+                    isDisabled={!tokenResponse?.access_token || isTestingApi}
+                  >
+                    {isTestingApi ? (
+                      <span className="flex items-center gap-2">
+                        <LoadingIndicator size="sm" />
+                        Testing...
+                      </span>
+                    ) : (
+                      'Test API'
+                    )}
+                  </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+
+                {apiResult && (
+                  <div className="space-y-4">
+                    <div className={`rounded-lg border p-4 ${
+                      apiResult.success
+                        ? 'bg-success-secondary border-success'
+                        : 'bg-error-secondary border-error'
+                    }`}>
+                      <p className={`font-semibold mb-2 ${
+                        apiResult.success ? 'text-success-primary' : 'text-error-primary'
+                      }`}>
+                        {apiResult.success ? '✓ API Test Successful' : '❌ API Test Failed'}
+                      </p>
+                      {apiResult.status && (
+                        <p className="text-sm text-secondary mb-2">
+                          Status: {apiResult.status} {apiResult.statusText || ''}
+                        </p>
+                      )}
+                      {apiResult.error && (
+                        <p className="text-sm text-error-primary">{apiResult.error}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-secondary mb-1 block">
+                        API Response
+                      </label>
+                      <CodeSnippet
+                        code={JSON.stringify(
+                          apiResult.success ? apiResult.data : { error: apiResult.error, status: apiResult.status },
+                          null,
+                          2
+                        )}
+                        language="json"
+                      />
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </>
         )}
 
       </div>
