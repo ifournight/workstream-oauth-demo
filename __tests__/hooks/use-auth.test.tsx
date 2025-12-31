@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { renderHook, waitFor } from '@testing-library/react'
+import { renderHook, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth } from '@/providers/auth-provider'
 
@@ -85,7 +85,7 @@ describe('useAuth', () => {
     expect(result.current.user).toBeNull()
   })
 
-  it('should provide login function', () => {
+  it('should provide login function', async () => {
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ authenticated: false, user: null }),
@@ -95,10 +95,16 @@ describe('useAuth', () => {
       wrapper: createWrapper(),
     })
 
+    await act(async () => {
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false)
+      })
+    })
+
     expect(typeof result.current.login).toBe('function')
   })
 
-  it('should provide logout function', () => {
+  it('should provide logout function', async () => {
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ authenticated: false, user: null }),
@@ -106,6 +112,12 @@ describe('useAuth', () => {
 
     const { result } = renderHook(() => useAuth(), {
       wrapper: createWrapper(),
+    })
+
+    await act(async () => {
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false)
+      })
     })
 
     expect(typeof result.current.logout).toBe('function')

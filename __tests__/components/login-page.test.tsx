@@ -41,23 +41,38 @@ describe('LoginPage', () => {
 
   it('should render password login button', () => {
     render(<LoginPage />)
-    const loginButton = screen.getByTestId('login-button')
+    // Use getByRole or querySelector since Button component uses data-cy, not data-testid
+    const loginButton = screen.getByRole('button', { name: /sign in with password/i })
     expect(loginButton).toBeInTheDocument()
     expect(loginButton).toHaveTextContent('Sign in with Password')
   })
 
   it('should render passkey login button', () => {
     render(<LoginPage />)
-    const passkeyButton = screen.getByTestId('passkey-login-button')
+    // Use getByRole since Button component uses data-cy, not data-testid
+    const passkeyButton = screen.getByRole('button', { name: /sign in with passkey/i })
     expect(passkeyButton).toBeInTheDocument()
     expect(passkeyButton).toHaveTextContent('Sign in with Passkey')
   })
 
   it('should redirect to login API when password login button is clicked', async () => {
     const user = userEvent.setup()
+    // Mock window.location.href setter
+    let hrefValue = 'http://localhost:3000'
+    Object.defineProperty(window, 'location', {
+      value: {
+        get href() { return hrefValue },
+        set href(value) { hrefValue = value },
+        origin: 'http://localhost:3000',
+        pathname: '/',
+        search: '',
+      },
+      writable: true,
+    })
+    
     render(<LoginPage />)
     
-    const loginButton = screen.getByTestId('login-button')
+    const loginButton = screen.getByRole('button', { name: /sign in with password/i })
     await user.click(loginButton)
     
     await waitFor(() => {
@@ -67,9 +82,22 @@ describe('LoginPage', () => {
 
   it('should redirect to login API when passkey login button is clicked', async () => {
     const user = userEvent.setup()
+    // Mock window.location.href setter
+    let hrefValue = 'http://localhost:3000'
+    Object.defineProperty(window, 'location', {
+      value: {
+        get href() { return hrefValue },
+        set href(value) { hrefValue = value },
+        origin: 'http://localhost:3000',
+        pathname: '/',
+        search: '',
+      },
+      writable: true,
+    })
+    
     render(<LoginPage />)
     
-    const passkeyButton = screen.getByTestId('passkey-login-button')
+    const passkeyButton = screen.getByRole('button', { name: /sign in with passkey/i })
     await user.click(passkeyButton)
     
     await waitFor(() => {

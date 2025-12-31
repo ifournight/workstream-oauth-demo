@@ -70,12 +70,12 @@ export async function GET(request: NextRequest) {
       body: tokenParams.toString(),
     })
 
-    const tokenData = await tokenResponse.json()
-
     if (!tokenResponse.ok) {
-      console.error('Token exchange failed:', tokenData)
-      redirect(`/login?error=${encodeURIComponent(tokenData.error || 'token_exchange_failed')}&error_description=${encodeURIComponent(tokenData.error_description || '')}`)
+      const errorData = await tokenResponse.json().catch(() => ({ error: 'Token exchange failed' }))
+      console.error('Token exchange failed:', errorData)
+      redirect(`/login?error=${encodeURIComponent(errorData.error || 'token_exchange_failed')}&error_description=${encodeURIComponent(errorData.error_description || '')}`)
     }
+
 
     // Extract access token and refresh token
     const { access_token, refresh_token, expires_in } = tokenData

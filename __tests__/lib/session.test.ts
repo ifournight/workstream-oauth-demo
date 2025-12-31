@@ -19,6 +19,7 @@ vi.mock('iron-session', () => ({
 // Mock jwt module
 vi.mock('@/lib/jwt', () => ({
   getIdentityIdFromToken: vi.fn(),
+  isTokenExpired: vi.fn(),
 }))
 
 describe('Session Utils', () => {
@@ -88,7 +89,10 @@ describe('Session Utils', () => {
       
       const { getIronSession } = await import('iron-session')
       vi.mocked(getIronSession).mockResolvedValue(mockSession as any)
-      vi.mocked(jwt.isTokenExpired).mockReturnValue(false)
+      
+      // Mock isTokenExpired - it's already mocked in vi.mock above
+      const jwtModule = await import('@/lib/jwt')
+      vi.mocked(jwtModule.isTokenExpired).mockReturnValue(false)
       
       const isValid = await isSessionValid()
       expect(isValid).toBe(true)
