@@ -1,26 +1,209 @@
-import { redirect } from 'next/navigation'
-import { cookies } from 'next/headers'
-import { config } from '@/lib/config'
-import Link from 'next/link'
-import { PageHeader } from '@/app/components/page-header'
+'use client'
 
-interface SearchParams {
-  code?: string
-  state?: string
-  error?: string
-  error_description?: string
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { PageHeader } from '@/app/components/page-header'
+import { CodeSnippet } from '@/app/components/ui/code-snippet'
+import { Input } from '@/components/base/input/input'
+import { Button } from '@/components/base/buttons/button'
+import { LoadingIndicator } from '@/components/application/loading-indicator/loading-indicator'
+import { Alert } from '@/components/ui/alert'
+import { toast } from 'sonner'
+import { config } from '@/lib/config'
+import { Copy, Check } from '@untitledui/icons'
+import { useClipboard } from '@/hooks/use-clipboard'
+
+interface TokenData {
+  access_token?: string
+  refresh_token?: string
+  token_type?: string
+  expires_in?: number
+  scope?: string
+  id_token?: string
 }
 
-export default async function CallbackPage({
-  searchParams,
-}: {
-  searchParams: SearchParams
-}) {
-  const { code, state, error, error_description } = searchParams
+interface ApiTestResult {
+  status?: number
+  statusText?: string
+  success?: boolean
+  data?: any
+  error?: string
+}
+
+export default function CallbackPage() {
+  const searchParams = useSearchParams()
+  const [tokenData, setTokenData] = useState<TokenData | null>(null)
+  const [apiResult, setApiResult] = useState<ApiTestResult | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isTestingApi, setIsTestingApi] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const { copied: copiedAccessToken, copy: copyAccessToken } = useClipboard()
+  const { copied: copiedIdToken, copy: copyIdToken } = useClipboard()
+
+  const code = searchParams.get('code')
+  const state = searchParams.get('state')
+  const errorParam = searchParams.get('error')
+  const errorDescription = searchParams.get('error_description')
+
+  useEffect(() => {
+    if (errorParam) {
+      setError(`${errorParam}: ${errorDescription || 'Unknown error'}`)
+      setIsLoading(false)
+      return
+    }
+
+    if (!code) {
+      setError('No authorization code was received in the callback.')
+      setIsLoading(false)
+      return
+    }
+
+    // Exchange authorization code for tokens
+    exchangeCodeForTokens(code, state)
+  }, [code, state, errorParam, errorDescription])
+
+  async function exchangeCodeForTokens(authCode: string, authState: string | null) {
+    try {
+      // Get stored flow parameters from sessionStorage
+      const flowParamsStr = typeof window !== 'undefined' ? sessionStorage.getItem('auth_flow_params') : null
+      let clientId: string | undefined
+      let clientSecret: string | undefined
+
+      if (flowParamsStr) {
+        try {
+          const flowParams = JSON.parse(flowParamsStr)
+          clientId = flowParams.clientId
+          clientSecret = flowParams.clientSecret
+        } catch (e) {
+          console.warn('Failed to parse flow params from sessionStorage', e)
+        }
+      }
+
+      // Use API route to exchange token (handles cookies server-side)
+      // redirect_uri will be retrieved from cookie in the API route to ensure it matches
+      const tokenResponse = await fetch('/api/auth/token-exchange', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          code: authCode,
+          // Don't send redirect_uri - let the API route use the stored one from cookie
+          // This ensures it matches exactly what was used in the authorization request
+          ...(clientId && { client_id: clientId }),
+          ...(clientSecret && { client_secret: clientSecret }),
+        }),
+      })
+
+      const data = await tokenResponse.json()
+
+      if (!tokenResponse.ok) {
+        setError(`Token exchange failed: ${data.error || data.error_description || 'Unknown error'}`)
+        setIsLoading(false)
+        toast.error('Token Exchange Failed', {
+          description: data.error_description || data.error || 'Failed to exchange authorization code for tokens',
+        })
+        return
+      }
+
+      setTokenData(data)
+      setIsLoading(false)
+
+      // Automatically test API after successful token exchange
+      if (data.access_token) {
+        setTimeout(() => {
+          testApi(data.access_token!)
+        }, 500)
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      setError(`Token exchange error: ${errorMessage}`)
+      setIsLoading(false)
+      toast.error('Token Exchange Error', {
+        description: errorMessage,
+      })
+    }
+  }
+
+
+  async function testApi(accessToken?: string) {
+    const token = accessToken || tokenData?.access_token
+    if (!token) {
+      toast.error('No Access Token', {
+        description: 'Cannot test API without an access token',
+      })
+      return
+    }
+
+    setIsTestingApi(true)
+    try {
+      const response = await fetch('/api/test-api', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ access_token: token }),
+      })
+
+      const result: ApiTestResult = await response.json()
+
+      setApiResult(result)
+
+      if (result.success) {
+        toast.success('API Test Successful', {
+          description: `Status: ${result.status} ${result.statusText || ''}`,
+        })
+      } else {
+        toast.error('API Test Failed', {
+          description: result.error || `Status: ${result.status} ${result.statusText || ''}`,
+        })
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      setApiResult({
+        success: false,
+        error: errorMessage,
+      })
+      toast.error('API Test Error', {
+        description: errorMessage,
+      })
+    } finally {
+      setIsTestingApi(false)
+    }
+  }
+
+  function generateCurlCommand() {
+    if (!tokenData?.access_token) return ''
+
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
+    return `curl -X GET '${config.testApiUrl}' \\
+  -H 'Authorization: Bearer ${tokenData.access_token}' \\
+  -H 'Content-Type: application/json' \\
+  -H 'x-core-company-id: ${config.companyId}'`
+  }
+
+  if (isLoading) {
+    return (
+      <div className="max-w-4xl">
+      <PageHeader
+        title="Processing Authorization"
+        breadcrumbs={[
+          { label: 'Flows', href: '/auth' },
+          { label: 'Authorization Code' },
+          { label: 'Callback' },
+        ]}
+        description="Exchanging authorization code for access token..."
+      />
+      <div className="py-12">
+        <LoadingIndicator size="md" label="Processing authorization..." />
+      </div>
+      </div>
+    )
+  }
 
   if (error) {
     return (
-      <div className="max-w-2xl">
+      <div className="max-w-4xl">
         <PageHeader
           title="Authorization Error"
           breadcrumbs={[
@@ -28,236 +211,188 @@ export default async function CallbackPage({
             { label: 'Authorization Code' },
             { label: 'Callback' },
           ]}
-          description={`Authorization failed: ${error}. ${error_description || 'Please try again.'}`}
+          description={error}
         />
-        <p className="mb-2"><strong>Error:</strong> {error}</p>
-        <p className="mb-4"><strong>Description:</strong> {error_description || 'No description'}</p>
-        <Link href="/" className="text-brand-primary hover:underline">
-          ← Back to Home
-        </Link>
-      </div>
-    )
-  }
-
-  if (!code) {
-    return (
-      <div className="max-w-2xl">
-        <PageHeader
-          title="No Authorization Code"
-          breadcrumbs={[
-            { label: 'Flows', href: '/auth' },
-            { label: 'Authorization Code' },
-            { label: 'Callback' },
-          ]}
-          description="No authorization code was received in the callback. Please restart the authorization flow."
-        />
-        <p className="mb-4">No authorization code was received in the callback.</p>
-        <Link href="/" className="text-brand-primary hover:underline">
-          ← Back to Home
-        </Link>
-      </div>
-    )
-  }
-
-  const cookieStore = await cookies()
-  const storedState = cookieStore.get('oauth_state')?.value
-  const codeVerifier = cookieStore.get('code_verifier')?.value
-
-  if (!state || state !== storedState) {
-    return (
-      <div className="max-w-2xl">
-        <PageHeader
-          title="State Mismatch"
-          breadcrumbs={[
-            { label: 'Flows', href: '/auth' },
-            { label: 'Authorization Code' },
-            { label: 'Callback' },
-          ]}
-          description="State parameter does not match. This may indicate a CSRF attack or expired session. Please restart the authorization flow."
-        />
-        <p className="mb-4">State parameter does not match. Possible CSRF attack or expired session.</p>
-        <p className="mb-2"><strong>Received state:</strong> {state || 'null'}</p>
-        <p className="mb-4"><strong>Stored state:</strong> {storedState || 'null (not found)'}</p>
-        <Link href="/" className="text-brand-primary hover:underline">
-          ← Back to Home
-        </Link>
-      </div>
-    )
-  }
-
-  if (!codeVerifier) {
-    return (
-      <div className="max-w-2xl">
-        <PageHeader
-          title="PKCE Error"
-          breadcrumbs={[
-            { label: 'Flows', href: '/auth' },
-            { label: 'Authorization Code' },
-            { label: 'Callback' },
-          ]}
-          description="Code verifier is missing. Please restart the authorization flow to generate a new code verifier."
-        />
-        <p className="mb-4">Code verifier is missing. Please restart the authorization flow.</p>
-        <Link href="/" className="text-brand-primary hover:underline">
-          ← Back to Home
-        </Link>
-      </div>
-    )
-  }
-
-  // Exchange authorization code for tokens
-  const redirectUri = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/callback`
-  const audience = 'http://localhost:3392'
-
-  const tokenParams = new URLSearchParams({
-    grant_type: 'authorization_code',
-    code,
-    redirect_uri: redirectUri,
-    client_id: config.clientId,
-    client_secret: config.clientSecret,
-    code_verifier: codeVerifier,
-    audience,
-  })
-
-  try {
-    const tokenResponse = await fetch(`${config.hydraPublicUrl}/oauth2/token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: tokenParams.toString(),
-    })
-
-    const tokenData = await tokenResponse.json()
-
-    if (!tokenResponse.ok) {
-      return (
-        <div className="max-w-2xl">
-          <PageHeader
-            title="Token Exchange Failed"
-            breadcrumbs={[
-              { label: 'Flows', href: '/auth' },
-              { label: 'Authorization Code' },
-              { label: 'Callback' },
-            ]}
-            description="Failed to exchange authorization code for access token. Please check the error details below."
-          />
-          <pre className="bg-secondary p-4 rounded overflow-auto">
-            {JSON.stringify(tokenData, null, 2)}
-          </pre>
-          <Link href="/" className="text-brand-primary hover:underline mt-4 inline-block">
-            ← Back to Home
-          </Link>
+        <div className="rounded-lg bg-error-secondary border border-error p-4">
+          <p className="text-error-primary font-semibold mb-2">Error</p>
+          <p className="text-secondary">{error}</p>
         </div>
-      )
-    }
+      </div>
+    )
+  }
 
-    // Note: Cookies will expire automatically after 10 minutes (maxAge: 600)
-    // Cookie deletion is not allowed in page components in Next.js 15
+  return (
+    <div className="max-w-6xl space-y-6">
+      <PageHeader
+        title="Authorization Successful"
+        breadcrumbs={[
+          { label: 'Flows', href: '/auth' },
+          { label: 'Authorization Code' },
+          { label: 'Callback' },
+        ]}
+        description="Authorization code flow completed successfully. Access token and refresh token have been received."
+      />
 
-    // Test API call with the access token
-    let apiResult: any = null
-    let apiError: string | null = null
-
-    try {
-      const apiResponse = await fetch(config.testApiUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${tokenData.access_token}`,
-          'Content-Type': 'application/json',
-          'x-core-company-id': config.companyId,
-        },
-      })
-
-      apiResult = {
-        status: apiResponse.status,
-        statusText: apiResponse.statusText,
-        success: apiResponse.ok && apiResponse.status !== 401,
-      }
-
-      if (apiResponse.ok) {
-        apiResult.data = await apiResponse.json()
-      } else {
-        apiResult.error = await apiResponse.text()
-      }
-    } catch (error) {
-      apiError = error instanceof Error ? error.message : 'Unknown error'
-    }
-
-    return (
-      <div className="max-w-4xl">
-        <PageHeader
-          title="Authorization Successful"
-          breadcrumbs={[
-            { label: 'Flows', href: '/auth' },
-            { label: 'Authorization Code' },
-            { label: 'Callback' },
-          ]}
-          description="Authorization code flow completed successfully. Access token and refresh token have been received."
-        />
-
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4">Received Tokens:</h2>
-          <pre className="bg-secondary p-4 rounded overflow-auto text-sm">
-            {JSON.stringify(tokenData, null, 2)}
-          </pre>
-        </div>
-
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4">API Test Result:</h2>
-          <div className={`p-4 rounded ${apiResult?.success ? 'bg-success-secondary border border-success' : 'bg-error-secondary border border-error'}`}>
-            {apiError ? (
-              <>
-                <h3 className="font-semibold text-error-primary mb-2">❌ API Test Failed</h3>
-                <p><strong>Error:</strong> {apiError}</p>
-              </>
-            ) : apiResult?.success ? (
-              <>
-                <h3 className="font-semibold text-success-primary mb-2">✓ API Test Successful</h3>
-                <p className="mb-2"><strong>Status:</strong> {apiResult.status} {apiResult.statusText}</p>
-                {apiResult.data && (
-                  <pre className="bg-primary p-2 rounded text-xs overflow-auto mt-2">
-                    {JSON.stringify(apiResult.data, null, 2)}
-                  </pre>
-                )}
-              </>
-            ) : (
-              <>
-                <h3 className="font-semibold text-error-primary mb-2">❌ API Test Failed</h3>
-                <p className="mb-2"><strong>Status:</strong> {apiResult?.status} {apiResult?.statusText}</p>
-                {apiResult?.error && (
-                  <pre className="bg-primary p-2 rounded text-xs overflow-auto mt-2">
-                    {apiResult.error}
-                  </pre>
-                )}
-              </>
+      {/* Token Response Form */}
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Token Response</h2>
+          <div className="space-y-4">
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-sm font-medium text-secondary">Access Token</label>
+                <Button
+                  color="tertiary"
+                  size="sm"
+                  onClick={() => tokenData?.access_token && copyAccessToken(tokenData.access_token)}
+                  iconLeading={copiedAccessToken ? Check : Copy}
+                >
+                  {copiedAccessToken ? 'Copied' : 'Copy'}
+                </Button>
+              </div>
+              <Input
+                value={tokenData?.access_token || ''}
+                onChange={() => {}}
+                isDisabled
+                inputClassName="font-mono text-sm"
+              />
+            </div>
+            {tokenData?.refresh_token && (
+              <Input
+                label="Refresh Token"
+                value={tokenData.refresh_token}
+                onChange={() => {}}
+                isDisabled
+                inputClassName="font-mono text-sm"
+              />
             )}
+            {tokenData?.token_type && (
+              <Input
+                label="Token Type"
+                value={tokenData.token_type}
+                onChange={() => {}}
+                isDisabled
+              />
+            )}
+            {tokenData?.expires_in !== undefined && (
+              <Input
+                label="Expires In (seconds)"
+                value={tokenData.expires_in.toString()}
+                onChange={() => {}}
+                isDisabled
+              />
+            )}
+            {tokenData?.scope && (
+              <Input
+                label="Scope"
+                value={tokenData.scope}
+                onChange={() => {}}
+                isDisabled
+              />
+            )}
+            {tokenData?.id_token && (
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-sm font-medium text-secondary">ID Token</label>
+                  <Button
+                    color="tertiary"
+                    size="sm"
+                    onClick={() => tokenData?.id_token && copyIdToken(tokenData.id_token)}
+                    iconLeading={copiedIdToken ? Check : Copy}
+                  >
+                    {copiedIdToken ? 'Copied' : 'Copy'}
+                  </Button>
+                </div>
+                <Input
+                  value={tokenData.id_token}
+                  onChange={() => {}}
+                  isDisabled
+                  inputClassName="font-mono text-sm"
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6">
+            <CodeSnippet
+              code={JSON.stringify(tokenData, null, 2)}
+              language="json"
+              title="Full Response JSON"
+            />
           </div>
         </div>
 
-        <Link href="/" className="text-brand-primary hover:underline">
-          ← Back to Home
-        </Link>
-      </div>
-    )
-  } catch (error) {
-    return (
-      <div className="max-w-2xl">
-        <PageHeader
-          title="Token Exchange Error"
-          breadcrumbs={[
-            { label: 'Flows', href: '/auth' },
-            { label: 'Authorization Code' },
-            { label: 'Callback' },
-          ]}
-          description="An error occurred during token exchange. Please check the error message below."
-        />
-        <p className="mb-4">{error instanceof Error ? error.message : 'Unknown error'}</p>
-        <Link href="/" className="text-brand-primary hover:underline">
-          ← Back to Home
-        </Link>
-      </div>
-    )
-  }
-}
+        {/* API Test Section */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">API Test</h2>
+            <Button
+              color="primary"
+              size="md"
+              onClick={() => testApi()}
+              isDisabled={!tokenData?.access_token || isTestingApi}
+              isLoading={isTestingApi}
+            >
+              {isTestingApi ? 'Testing...' : 'Test API'}
+            </Button>
+          </div>
 
+          <div className="mb-6">
+            <Alert variant="info" className="mb-4">
+              <p className="text-sm">
+                <strong>Note:</strong> The API test uses hardcoded values for <code className="bg-secondary px-1 py-0.5 rounded text-xs">core company id</code> and endpoint query parameters. 
+                These will be configurable via API selection in a future update.
+              </p>
+            </Alert>
+          </div>
+
+          {tokenData?.access_token && (
+            <div className="mb-6">
+              <CodeSnippet
+                code={generateCurlCommand()}
+                language="bash"
+                title="cURL Command"
+              />
+            </div>
+          )}
+
+          {apiResult && (
+            <div>
+              <div className={`mb-4 rounded-lg border p-4 ${
+                apiResult.success
+                  ? 'bg-success-secondary border-success'
+                  : 'bg-error-secondary border-error'
+              }`}>
+                <p className={`font-semibold mb-2 ${
+                  apiResult.success ? 'text-success-primary' : 'text-error-primary'
+                }`}>
+                  {apiResult.success ? '✓ API Test Successful' : '❌ API Test Failed'}
+                </p>
+                {apiResult.status && (
+                  <p className="text-sm text-secondary mb-2">
+                    Status: {apiResult.status} {apiResult.statusText || ''}
+                  </p>
+                )}
+                {apiResult.error && (
+                  <p className="text-sm text-error-primary">{apiResult.error}</p>
+                )}
+              </div>
+
+              <CodeSnippet
+                code={JSON.stringify(
+                  apiResult.success ? apiResult.data : { error: apiResult.error, status: apiResult.status },
+                  null,
+                  2
+                )}
+                language="json"
+                title="API Response"
+                collapsible
+                defaultOpen={false}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
