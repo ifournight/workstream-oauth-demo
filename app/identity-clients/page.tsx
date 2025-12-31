@@ -67,11 +67,10 @@ export default function IdentityClientsPage() {
 
   const clients = clientsData || []
 
-  // Update inputError when query has error
+  // Show error toast when query has error
   useEffect(() => {
     if (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      setInputError(errorMessage)
       // Only show toast if this is a new error
       if (errorMessage !== lastErrorRef.current) {
         lastErrorRef.current = errorMessage
@@ -80,7 +79,6 @@ export default function IdentityClientsPage() {
         })
       }
     } else {
-      setInputError(null)
       lastErrorRef.current = null
     }
   }, [error])
