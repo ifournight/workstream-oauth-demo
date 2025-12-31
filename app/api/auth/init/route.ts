@@ -9,10 +9,9 @@ export async function GET(request: NextRequest) {
   const clientId = searchParams.get('client_id') || config.clientId
   const clientSecret = searchParams.get('client_secret') || ''
   const scope = searchParams.get('scope') || 'openid offline'
-  // Use /api/auth/callback as the default redirect URI for auth flow
-  const redirectUri = searchParams.get('redirect_uri') || `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/auth/callback`
-  // Get return URL (where to redirect after successful auth)
-  const returnUrl = searchParams.get('return_url') || '/auth'
+  // Use /callback as the default redirect URI for demo auth flow
+  // This is different from /api/auth/callback which is for app login
+  const redirectUri = searchParams.get('redirect_uri') || `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/callback`
 
   if (!clientId) {
     redirect('/auth?error=missing_client_id')
@@ -57,14 +56,6 @@ export async function GET(request: NextRequest) {
   
   // Store redirect_uri to ensure it matches during token exchange
   cookieStore.set('flow_redirect_uri', redirectUri, {
-    httpOnly: true,
-    maxAge: 600,
-    path: '/',
-    sameSite: 'lax',
-  })
-  
-  // Store return URL for after auth (used by /api/auth/callback)
-  cookieStore.set('login_return_url', returnUrl, {
     httpOnly: true,
     maxAge: 600,
     path: '/',
