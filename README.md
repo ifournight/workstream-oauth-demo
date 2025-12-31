@@ -140,6 +140,52 @@ This project provides a Next.js application with React UI to verify OAuth 2.0 fl
 - ✅ **API Testing** - Built-in API testing with access tokens
 - ✅ **Runtime Detection** - Auto-detects Bun or Node.js and uses appropriate server
 - ✅ **Docker Support** - Run in containerized environment
+- ✅ **App Login & Session Management** - PKCE-based login flow with session management
+
+## OAuth Callback Routes
+
+This application uses two different callback routes for different purposes:
+
+### `/api/auth/callback` - App Login Callback
+
+**Purpose**: Handles OAuth callback for **application login** (establishing user session)
+
+**Flow**: `/api/auth/login` → Hydra Authorization → `/api/auth/callback`
+
+**Behavior**:
+- Exchanges authorization code for access token
+- **Creates application session** (stores token in secure cookie)
+- Extracts identity ID from token's `sub` claim
+- **Redirects** to `returnUrl` (default: `/`) with success parameters
+- Used for authenticating users to access the application
+
+**When to use**: When you need to log in to the application and establish a session for accessing protected routes.
+
+### `/callback` - Demo OAuth Flow Callback
+
+**Purpose**: Handles OAuth callback for **demonstrating OAuth flows** (no session creation)
+
+**Flow**: `/api/auth/init` → Hydra Authorization → `/callback`
+
+**Behavior**:
+- Exchanges authorization code for access token
+- **Does NOT create application session**
+- Displays token information (access token, refresh token, etc.)
+- Shows API testing interface
+- **Does NOT redirect** - stays on `/callback` page
+- Used for testing and demonstrating OAuth flows
+
+**When to use**: When you want to test OAuth flows, inspect tokens, or demonstrate OAuth functionality without affecting the application's login state.
+
+### Key Differences
+
+| Feature | `/api/auth/callback` | `/callback` |
+|---------|----------------------|-------------|
+| **Session Creation** | ✅ Creates session | ❌ No session |
+| **Redirect Behavior** | ✅ Redirects after success | ❌ Stays on page |
+| **Use Case** | App login | OAuth flow demo |
+| **Identity ID** | Extracted and stored in session | Displayed but not stored |
+| **Access Control** | Enables access to protected routes | No access control impact |
 
 ## Environment Variables
 

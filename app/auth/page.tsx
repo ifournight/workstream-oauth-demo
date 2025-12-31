@@ -10,6 +10,7 @@ import { Select } from '@/components/base/select/select'
 import { Tabs } from '@/components/application/tabs/tabs'
 import { LoadingIndicator } from '@/components/application/loading-indicator/loading-indicator'
 import { EmptyState } from '@/components/application/empty-state/empty-state'
+import { useAuth } from '@/hooks/use-auth'
 import { config } from '@/lib/config'
 
 interface Client {
@@ -24,8 +25,8 @@ interface Client {
 
 export default function AuthPage() {
   const router = useRouter()
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const [clientType, setClientType] = useState<'global' | 'identity'>('global')
-  const [identityId, setIdentityId] = useState('')
   const [selectedClientId, setSelectedClientId] = useState<string>('')
   const [clientSecret, setClientSecret] = useState('')
   const [scope, setScope] = useState('openid offline')
@@ -34,6 +35,9 @@ export default function AuthPage() {
       ? `${window.location.origin}/callback`
       : 'http://localhost:3000/callback'
   )
+
+  // Use identity ID from session for identity clients
+  const identityId = user?.identityId
 
   // Fetch global clients
   const { data: globalClients = [], isLoading: loadingGlobal } = useQuery({
@@ -48,21 +52,18 @@ export default function AuthPage() {
     },
   })
 
-  // Fetch identity clients
+  // Fetch identity clients for current user
   const { data: identityClients = [], isLoading: loadingIdentity } = useQuery({
     queryKey: ['identity-clients', identityId],
     queryFn: async () => {
-      if (!identityId.trim()) {
-        return []
-      }
-      const response = await fetch(`/api/identity-clients?identity_id=${encodeURIComponent(identityId)}`)
+      const response = await fetch(`/api/identity-clients`)
       if (!response.ok) {
         throw new Error('Failed to load identity clients')
       }
       const data = await response.json()
       return Array.isArray(data) ? data : []
     },
-    enabled: clientType === 'identity' && !!identityId.trim(),
+    enabled: clientType === 'identity' && !!identityId && isAuthenticated,
   })
 
   const clients = clientType === 'global' ? globalClients : identityClients
@@ -103,7 +104,6 @@ export default function AuthPage() {
       scope,
       redirectUri,
       clientType,
-      identityId: clientType === 'identity' ? identityId : undefined,
     }))
 
     // Redirect to init API which will handle the OAuth flow
@@ -135,6 +135,8 @@ export default function AuthPage() {
             onSelectionChange={(key) => {
               setClientType(key as 'global' | 'identity')
               setSelectedClientId('')
+              // Clear client secret when switching tabs
+              setClientSecret('')
             }}
           >
             <Tabs.List 
@@ -216,84 +218,87 @@ export default function AuthPage() {
             </Tabs.Panel>
 
             <Tabs.Panel id="identity" className="mt-6">
-              <div className="space-y-4">
-                <Input
-                  label="Identity ID"
-                  type="text"
-                  value={identityId}
-                  onChange={(value: string) => {
-                    setIdentityId(value)
-                    setSelectedClientId('')
-                  }}
-                  placeholder="Enter identity UUID"
-                  isRequired
-                  hint="Enter the identity UUID to load associated clients"
-                />
+              {authLoading ? (
+                <div className="py-8">
+                  <LoadingIndicator size="md" label="Checking authentication..." />
+                </div>
+              ) : !isAuthenticated || !identityId ? (
+                <div className="py-8">
+                  <EmptyState>
+                    <EmptyState.Header>
+                      <EmptyState.Illustration type="box" />
+                    </EmptyState.Header>
+                    <EmptyState.Content>
+                      <EmptyState.Title>Authentication Required</EmptyState.Title>
+                      <EmptyState.Description>
+                        Please log in to view and use your identity-specific clients.
+                      </EmptyState.Description>
+                    </EmptyState.Content>
+                  </EmptyState>
+                </div>
+              ) : loadingIdentity ? (
+                <div className="py-8">
+                  <LoadingIndicator size="md" label="Loading identity clients..." />
+                </div>
+              ) : identityClients.length === 0 ? (
+                <div className="py-8">
+                  <EmptyState>
+                    <EmptyState.Header>
+                      <EmptyState.Illustration type="box" />
+                    </EmptyState.Header>
+                    <EmptyState.Content>
+                      <EmptyState.Title>No clients found</EmptyState.Title>
+                      <EmptyState.Description>
+                        No clients found for your identity. Please create a client first.
+                      </EmptyState.Description>
+                    </EmptyState.Content>
+                  </EmptyState>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <Select
+                    label="Client"
+                    placeholder="Select a client"
+                    selectedKey={selectedClientId}
+                    onSelectionChange={(key) => handleClientChange(key as string)}
+                    items={clientOptions}
+                  >
+                    {(item) => <Select.Item id={item.id}>{item.label}</Select.Item>}
+                  </Select>
 
-                {loadingIdentity ? (
-                  <div className="py-8">
-                    <LoadingIndicator size="md" label="Loading identity clients..." />
-                  </div>
-                ) : identityId.trim() && identityClients.length === 0 ? (
-                  <div className="py-8">
-                    <EmptyState>
-                      <EmptyState.Header>
-                        <EmptyState.Illustration type="box" />
-                      </EmptyState.Header>
-                      <EmptyState.Content>
-                        <EmptyState.Title>No clients found</EmptyState.Title>
-                        <EmptyState.Description>
-                          No clients found for this identity. Please create a client first.
-                        </EmptyState.Description>
-                      </EmptyState.Content>
-                    </EmptyState>
-                  </div>
-                ) : identityId.trim() ? (
-                  <div className="space-y-4">
-                    <Select
-                      label="Client"
-                      placeholder="Select a client"
-                      selectedKey={selectedClientId}
-                      onSelectionChange={(key) => handleClientChange(key as string)}
-                      items={clientOptions}
-                    >
-                      {(item) => <Select.Item id={item.id}>{item.label}</Select.Item>}
-                    </Select>
+                  {selectedClient && (
+                    <>
+                      <Input
+                        label="Client Secret"
+                        type="password"
+                        value={clientSecret}
+                        onChange={(value: string) => setClientSecret(value)}
+                        placeholder="Enter client secret (optional for public clients)"
+                        hint="Required for confidential clients"
+                      />
 
-                    {selectedClient && (
-                      <>
-                        <Input
-                          label="Client Secret"
-                          type="password"
-                          value={clientSecret}
-                          onChange={(value: string) => setClientSecret(value)}
-                          placeholder="Enter client secret (optional for public clients)"
-                          hint="Required for confidential clients"
-                        />
+                      <Input
+                        label="Scope"
+                        type="text"
+                        value={scope}
+                        onChange={(value: string) => setScope(value)}
+                        placeholder="openid offline"
+                        isRequired
+                      />
 
-                        <Input
-                          label="Scope"
-                          type="text"
-                          value={scope}
-                          onChange={(value: string) => setScope(value)}
-                          placeholder="openid offline"
-                          isRequired
-                        />
-
-                        <Input
-                          label="Redirect URI"
-                          type="text"
-                          value={redirectUri}
-                          onChange={(value: string) => setRedirectUri(value)}
-                          placeholder="http://localhost:3000/callback"
-                          isRequired
-                          hint="Must match one of the client's configured redirect URIs"
-                        />
-                      </>
-                    )}
-                  </div>
-                ) : null}
-              </div>
+                      <Input
+                        label="Redirect URI"
+                        type="text"
+                        value={redirectUri}
+                        onChange={(value: string) => setRedirectUri(value)}
+                        placeholder="http://localhost:3000/callback"
+                        isRequired
+                        hint="Must match one of the client's configured redirect URIs"
+                      />
+                    </>
+                  )}
+                </div>
+              )}
             </Tabs.Panel>
           </Tabs>
 

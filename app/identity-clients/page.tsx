@@ -1,14 +1,12 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { SearchLg } from '@untitledui/icons'
 import { Button } from '@/components/base/buttons/button'
 import { Card, CardContent } from '@/app/components/ui/card'
 import { Table, TableCard } from '@/components/application/table/table'
 import { LoadingIndicator } from '@/components/application/loading-indicator/loading-indicator'
 import { EmptyState } from '@/components/application/empty-state/empty-state'
-import { Input } from '@/components/base/input/input'
 import { PageHeader } from '@/app/components/page-header'
 import { toast } from 'sonner'
 import { useAuth } from '@/hooks/use-auth'
@@ -34,35 +32,16 @@ const columns = [
 
 export default function IdentityClientsPage() {
   const queryClient = useQueryClient()
-  const { user } = useAuth()
-  const [identityId, setIdentityId] = useState('')
-  const [debouncedIdentityId, setDebouncedIdentityId] = useState('')
-  const [inputError, setInputError] = useState<string | null>(null)
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const lastErrorRef = useRef<string | null>(null)
 
-  // Set default identity ID from session if available
-  useEffect(() => {
-    if (user?.identityId && !identityId) {
-      setIdentityId(user.identityId)
-    }
-  }, [user?.identityId, identityId])
+  // Use identity ID directly from session
+  const identityId = user?.identityId
 
-  // Debounce identityId
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedIdentityId(identityId)
-    }, 500)
-    return () => clearTimeout(timer)
-  }, [identityId])
-
-  // Fetch clients
+  // Fetch clients for current user's identity
   const { data: clientsData, isLoading: loading, error } = useQuery({
-    queryKey: ['identity-clients', debouncedIdentityId],
+    queryKey: ['identity-clients', identityId],
     queryFn: async () => {
-      if (!debouncedIdentityId.trim()) {
-        return []
-      }
-
       const response = await fetch(`/api/identity-clients`)
       const data = await response.json()
       
@@ -75,24 +54,24 @@ export default function IdentityClientsPage() {
       }
       
       const clientsWithId = Array.isArray(data) 
-        ? data.map((client: Client) => ({
+        ? data.map((client: Client, index: number) => ({
             ...client,
-            id: client.client_id || client.id || `client-${Math.random().toString(36).substr(2, 9)}`,
+            // Ensure every client has a stable id for react-aria-components
+            id: client.client_id || client.id || `temp-client-${index}`,
           }))
         : []
       
       return clientsWithId
     },
-    enabled: !!user?.identityId && !!debouncedIdentityId.trim(),
+    enabled: !!identityId && isAuthenticated,
   })
 
   const clients = clientsData || []
 
-  // Update inputError when query has error
+  // Show error toast when query has error
   useEffect(() => {
     if (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      setInputError(errorMessage)
       // Only show toast if this is a new error
       if (errorMessage !== lastErrorRef.current) {
         lastErrorRef.current = errorMessage
@@ -101,7 +80,6 @@ export default function IdentityClientsPage() {
         })
       }
     } else {
-      setInputError(null)
       lastErrorRef.current = null
     }
   }, [error])
@@ -109,8 +87,8 @@ export default function IdentityClientsPage() {
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (clientId: string) => {
-      if (!identityId.trim()) {
-        throw new Error('Identity ID is required to delete clients.')
+      if (!identityId) {
+        throw new Error('Authentication required. Please log in.')
       }
 
       const response = await fetch(
@@ -126,7 +104,7 @@ export default function IdentityClientsPage() {
       }
     },
     onSuccess: (_: void, clientId: string) => {
-      queryClient.invalidateQueries({ queryKey: ['identity-clients', debouncedIdentityId] })
+      queryClient.invalidateQueries({ queryKey: ['identity-clients', identityId] })
       toast.success('Client Deleted', {
         description: `Client ${clientId} has been successfully deleted.`,
       })
@@ -164,41 +142,25 @@ export default function IdentityClientsPage() {
           { label: 'Clients', href: '/clients' },
           { label: 'Identity-Specific Clients' },
         ]}
-        description="Manage OAuth clients scoped to a specific identity. Enter an identity UUID to view and manage associated clients."
+        description="Manage OAuth clients for your identity. Clients are automatically loaded based on your current session."
         singleRow
         actions={
           <Button color="primary" onClick={handleCreate}>
             + Create Client
           </Button>
         }
-      >
-        <Input
-          type="text"
-          value={identityId}
-          onChange={(value: string) => {
-            setIdentityId(value)
-            if (inputError && value.trim()) {
-              setInputError(null)
-            }
-          }}
-          placeholder="Enter identity UUID"
-          className="w-80"
-          icon={SearchLg}
-          isInvalid={!!inputError}
-          hint={inputError || undefined}
-        />
-      </PageHeader>
+      />
 
 
-      {loading ? (
+      {authLoading ? (
         <Card>
           <CardContent>
             <div className="py-12">
-              <LoadingIndicator size="md" label="Loading clients..." />
+              <LoadingIndicator size="md" label="Checking authentication..." />
             </div>
           </CardContent>
         </Card>
-      ) : !identityId.trim() ? (
+      ) : !isAuthenticated || !identityId ? (
         <Card>
           <CardContent>
             <div className="py-12">
@@ -207,10 +169,18 @@ export default function IdentityClientsPage() {
                   <EmptyState.Illustration type="box" />
                 </EmptyState.Header>
                 <EmptyState.Content>
-                  <EmptyState.Title>Enter Identity ID</EmptyState.Title>
-                  <EmptyState.Description>Please enter an Identity ID to search for clients.</EmptyState.Description>
+                  <EmptyState.Title>Authentication Required</EmptyState.Title>
+                  <EmptyState.Description>Please log in to view and manage your identity-specific clients.</EmptyState.Description>
                 </EmptyState.Content>
               </EmptyState>
+            </div>
+          </CardContent>
+        </Card>
+      ) : loading ? (
+        <Card>
+          <CardContent>
+            <div className="py-12">
+              <LoadingIndicator size="md" label="Loading clients..." />
             </div>
           </CardContent>
         </Card>
@@ -240,7 +210,10 @@ export default function IdentityClientsPage() {
             <Table.Header columns={columns}>
               {(column) => <Table.Head>{column.name}</Table.Head>}
             </Table.Header>
-            <Table.Body items={clients}>
+            <Table.Body 
+              items={clients}
+              getKey={(client: Client) => client.id || client.client_id || 'unknown'}
+            >
               {(client: Client) => {
                 const clientId = client.client_id || client.id || 'N/A'
                 const clientName = client.client_name || client.name || 'N/A'

@@ -46,9 +46,10 @@ export default function GlobalClientsPage() {
       }
       const data = await response.json()
       const clientsWithId = Array.isArray(data) 
-        ? data.map((client: Client) => ({
+        ? data.map((client: Client, index: number) => ({
             ...client,
-            id: client.client_id || client.id || `client-${Math.random().toString(36).substr(2, 9)}`,
+            // Ensure every client has a stable id for react-aria-components
+            id: client.client_id || client.id || `temp-client-${index}`,
           }))
         : []
       
@@ -161,7 +162,10 @@ export default function GlobalClientsPage() {
             <Table.Header columns={columns}>
               {(column) => <Table.Head>{column.name}</Table.Head>}
             </Table.Header>
-            <Table.Body items={clients}>
+            <Table.Body 
+              items={clients}
+              getKey={(client: Client) => client.id || client.client_id || 'unknown'}
+            >
               {(client: Client) => {
                 const clientId = client.client_id || client.id || 'N/A'
                 const clientName = client.client_name || client.name || 'N/A'

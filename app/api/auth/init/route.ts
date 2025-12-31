@@ -9,6 +9,8 @@ export async function GET(request: NextRequest) {
   const clientId = searchParams.get('client_id') || config.clientId
   const clientSecret = searchParams.get('client_secret') || ''
   const scope = searchParams.get('scope') || 'openid offline'
+  // Use /callback as the default redirect URI for demo auth flow
+  // This is different from /api/auth/callback which is for app login
   const redirectUri = searchParams.get('redirect_uri') || `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/callback`
 
   if (!clientId) {
