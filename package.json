@@ -11,10 +11,12 @@
     "create-client": "bun run scripts/create-client.ts",
     "update-client": "bun run scripts/update-client.ts",
     "test": "vitest",
+    "test:run": "vitest run",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "test:e2e": "cypress run",
     "test:e2e:open": "cypress open",
+    "test:verify": "bun run scripts/verify-tests.ts",
     "test:auth-code": "bun run demos/auth-code-flow.ts",
     "test:device": "bun run demos/device-flow.ts",
     "test:client-credentials": "bun run demos/client-credentials-flow.ts"

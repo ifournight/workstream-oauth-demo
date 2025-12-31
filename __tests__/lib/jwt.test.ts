@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { decodeAccessToken, getIdentityIdFromToken, isTokenExpired, getTokenExpiration } from '@/lib/jwt'
 
 // Mock JWT tokens for testing
@@ -16,6 +16,14 @@ const tokenWithoutSub = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjk5OTk5OT
 const tokenWithoutExp = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0LWlkZW50aXR5LWlkIiwiaWF0IjoxMjM0NTY3ODkwfQ.test-signature'
 
 describe('JWT Utils', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   describe('decodeAccessToken', () => {
     it('should decode a valid JWT token', () => {
       const decoded = decodeAccessToken(validToken)
@@ -48,14 +56,14 @@ describe('JWT Utils', () => {
 
   describe('isTokenExpired', () => {
     it('should return false for valid token', () => {
+      // validToken has exp: 9999999999 (year 2286), so it should not be expired
       // Mock Date.now to return a time before expiration
-      const originalNow = Date.now
-      Date.now = () => 1000000000000 // Year 2001
+      const mockNow = vi.spyOn(Date, 'now').mockReturnValue(1000000000000) // Year 2001
       
       const expired = isTokenExpired(validToken)
       expect(expired).toBe(false)
       
-      Date.now = originalNow
+      mockNow.mockRestore()
     })
 
     it('should return true for expired token', () => {
