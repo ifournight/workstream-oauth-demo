@@ -95,12 +95,15 @@ describe('useAuth', () => {
       wrapper: createWrapper(),
     })
 
-    await act(async () => {
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false)
-      })
-    })
+    // Initially loading should be true
+    expect(result.current.isLoading).toBe(true)
+    
+    // Wait for loading to complete - checkAuth is called in useEffect
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    }, { timeout: 5000 })
 
+    // Functions should be available regardless of loading state
     expect(typeof result.current.login).toBe('function')
   })
 
@@ -114,12 +117,15 @@ describe('useAuth', () => {
       wrapper: createWrapper(),
     })
 
-    await act(async () => {
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false)
-      })
-    })
+    // Initially loading should be true
+    expect(result.current.isLoading).toBe(true)
+    
+    // Wait for loading to complete - checkAuth is called in useEffect
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    }, { timeout: 5000 })
 
+    // Functions should be available regardless of loading state
     expect(typeof result.current.logout).toBe('function')
   })
 })

@@ -63,10 +63,15 @@ describe('NavAccountCard', () => {
       wrapper: createWrapper(),
     })
 
+    // Wait for the component to render with user data
     await waitFor(() => {
-      const accountCard = screen.queryByTestId('nav-account-card')
-      expect(accountCard).toBeInTheDocument()
+      // Component uses data-cy, not data-testid, so we check by text content instead
+      expect(screen.getByText(/test-identity-id-12345/i)).toBeInTheDocument()
     })
+    
+    // Verify the account card container exists
+    const accountCard = screen.getByText(/test-identity-id-12345/i).closest('div[class*="rounded-xl"]')
+    expect(accountCard).toBeInTheDocument()
   })
 
   it('should display user identity ID', async () => {

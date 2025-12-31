@@ -56,7 +56,12 @@ describe('Callback API', () => {
   it('should redirect to login on OAuth error', async () => {
     const request = new NextRequest('http://localhost:3000/api/auth/callback?error=access_denied')
     
-    await GET(request)
+    // redirect() throws in Next.js, so we need to catch it
+    try {
+      await GET(request)
+    } catch (e) {
+      // Expected - redirect throws
+    }
     
     expect(mockRedirect).toHaveBeenCalledWith(
       expect.stringContaining('/login?error=access_denied')
@@ -66,7 +71,12 @@ describe('Callback API', () => {
   it('should redirect to login when code is missing', async () => {
     const request = new NextRequest('http://localhost:3000/api/auth/callback')
     
-    await GET(request)
+    // redirect() throws in Next.js, so we need to catch it
+    try {
+      await GET(request)
+    } catch (e) {
+      // Expected - redirect throws
+    }
     
     expect(mockRedirect).toHaveBeenCalledWith('/login?error=missing_code')
   })
@@ -128,7 +138,12 @@ describe('Callback API', () => {
 
     const request = new NextRequest('http://localhost:3000/api/auth/callback?code=test-code&state=test-state')
     
-    await GET(request)
+    // redirect() throws in Next.js, so we need to catch it
+    try {
+      await GET(request)
+    } catch (e) {
+      // Expected - redirect throws
+    }
     
     expect(mockRedirect).toHaveBeenCalledWith('/dashboard')
   })

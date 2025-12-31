@@ -76,6 +76,7 @@ export async function GET(request: NextRequest) {
       redirect(`/login?error=${encodeURIComponent(errorData.error || 'token_exchange_failed')}&error_description=${encodeURIComponent(errorData.error_description || '')}`)
     }
 
+    const tokenData = await tokenResponse.json()
 
     // Extract access token and refresh token
     const { access_token, refresh_token, expires_in } = tokenData
