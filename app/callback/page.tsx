@@ -187,11 +187,6 @@ export default function CallbackPage() {
       <div className="max-w-4xl">
       <PageHeader
         title="Processing Authorization"
-        breadcrumbs={[
-          { label: 'Flows', href: '/auth' },
-          { label: 'Authorization Code' },
-          { label: 'Callback' },
-        ]}
         description="Exchanging authorization code for access token..."
       />
       <div className="py-12">
@@ -206,11 +201,6 @@ export default function CallbackPage() {
       <div className="max-w-4xl">
         <PageHeader
           title="Authorization Error"
-          breadcrumbs={[
-            { label: 'Flows', href: '/auth' },
-            { label: 'Authorization Code' },
-            { label: 'Callback' },
-          ]}
           description={error}
         />
         <div className="rounded-lg bg-error-secondary border border-error p-4">
@@ -225,11 +215,6 @@ export default function CallbackPage() {
     <div className="max-w-6xl space-y-6">
       <PageHeader
         title="Authorization Successful"
-        breadcrumbs={[
-          { label: 'Flows', href: '/auth' },
-          { label: 'Authorization Code' },
-          { label: 'Callback' },
-        ]}
         description="Authorization code flow completed successfully. Access token and refresh token have been received."
       />
 

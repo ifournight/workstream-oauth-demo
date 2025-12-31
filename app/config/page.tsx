@@ -1,15 +1,26 @@
+'use client'
+
+import { useEffect } from 'react'
 import { config } from '@/lib/config'
 import { Card, CardContent } from '@/app/components/ui/card'
 import { PageHeader } from '@/app/components/page-header'
+import { useBreadcrumbs } from '@/lib/breadcrumbs'
 
 export default function ConfigPage() {
+  const { setBreadcrumbs } = useBreadcrumbs()
+
+  // Set breadcrumbs
+  useEffect(() => {
+    setBreadcrumbs([
+      { label: 'Settings', href: '/config' },
+    ])
+    return () => setBreadcrumbs([])
+  }, [setBreadcrumbs])
+
   return (
     <div className="max-w-4xl">
       <PageHeader
         title="Settings"
-        breadcrumbs={[
-          { label: 'Settings', href: '/config' },
-        ]}
         description="View and manage OAuth 2.0 server configuration settings, including Hydra endpoints, client credentials, and environment variables."
       />
       <Card>

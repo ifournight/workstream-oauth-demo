@@ -6,13 +6,25 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/base/buttons/button'
 import { Card, CardContent } from '@/app/components/ui/card'
 import { PageHeader } from '@/app/components/page-header'
+import { useBreadcrumbs } from '@/lib/breadcrumbs'
 import { Alert } from '@/app/components/ui/alert'
 
 export default function CreateIdentityClientSuccessPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { setBreadcrumbs } = useBreadcrumbs()
   const [responseData, setResponseData] = useState<any>(null)
   const [rawResponse, setRawResponse] = useState<string>('')
+
+  // Set breadcrumbs
+  useEffect(() => {
+    setBreadcrumbs([
+      { label: 'Clients', href: '/clients' },
+      { label: 'Identity-Specific Clients', href: '/identity-clients' },
+      { label: 'Success' },
+    ])
+    return () => setBreadcrumbs([])
+  }, [setBreadcrumbs])
 
   useEffect(() => {
     const responseParam = searchParams.get('response')
@@ -58,11 +70,6 @@ export default function CreateIdentityClientSuccessPage() {
       <div className="max-w-7xl">
         <PageHeader
           title="Create Identity Client"
-          breadcrumbs={[
-            { label: 'Clients', href: '/clients' },
-            { label: 'Identity-Specific Clients', href: '/identity-clients' },
-            { label: 'Success' },
-          ]}
         />
         <Card>
           <CardContent>
@@ -81,11 +88,6 @@ export default function CreateIdentityClientSuccessPage() {
     <div className="max-w-7xl">
       <PageHeader
         title="Client Created Successfully"
-        breadcrumbs={[
-          { label: 'Clients', href: '/clients' },
-          { label: 'Identity-Specific Clients', href: '/identity-clients' },
-          { label: 'Success' },
-        ]}
         description="Your OAuth client has been created. Please save the credentials below."
       />
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/app/components/page-header'
@@ -11,6 +11,7 @@ import { Tabs } from '@/components/application/tabs/tabs'
 import { LoadingIndicator } from '@/components/application/loading-indicator/loading-indicator'
 import { EmptyState } from '@/components/application/empty-state/empty-state'
 import { useAuth } from '@/hooks/use-auth'
+import { useBreadcrumbs } from '@/lib/breadcrumbs'
 import { config } from '@/lib/config'
 
 interface Client {
@@ -26,6 +27,7 @@ interface Client {
 export default function AuthPage() {
   const router = useRouter()
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
+  const { setBreadcrumbs } = useBreadcrumbs()
   const [clientType, setClientType] = useState<'global' | 'identity'>('global')
   const [selectedClientId, setSelectedClientId] = useState<string>('')
   const [clientSecret, setClientSecret] = useState('')
@@ -35,6 +37,15 @@ export default function AuthPage() {
       ? `${window.location.origin}/callback`
       : 'http://localhost:3000/callback'
   )
+
+  // Set breadcrumbs
+  useEffect(() => {
+    setBreadcrumbs([
+      { label: 'Flows', href: '/auth' },
+      { label: 'Authorization Code' },
+    ])
+    return () => setBreadcrumbs([])
+  }, [setBreadcrumbs])
 
   // Use identity ID from session for identity clients
   const identityId = user?.identityId
@@ -122,10 +133,6 @@ export default function AuthPage() {
     <div className="max-w-4xl">
       <PageHeader
         title="Authorization Code Flow"
-        breadcrumbs={[
-          { label: 'Flows', href: '/auth' },
-          { label: 'Authorization Code' },
-        ]}
         description="Configure and start the OAuth 2.0 Authorization Code flow with PKCE."
       />
 

@@ -1,14 +1,25 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import Link from 'next/link'
 import { PageHeader } from '@/app/components/page-header'
+import { useBreadcrumbs } from '@/lib/breadcrumbs'
 import { toast } from 'sonner'
 
 export default function ClientCredentialsDemoPage() {
+  const { setBreadcrumbs } = useBreadcrumbs()
   const [tokenData, setTokenData] = useState<any>(null)
   const [apiResult, setApiResult] = useState<any>(null)
+
+  // Set breadcrumbs
+  useEffect(() => {
+    setBreadcrumbs([
+      { label: 'Flows', href: '/client-credentials-demo' },
+      { label: 'Client Credentials' },
+    ])
+    return () => setBreadcrumbs([])
+  }, [setBreadcrumbs])
 
   // Request token mutation
   const requestTokenMutation = useMutation({
@@ -96,10 +107,6 @@ export default function ClientCredentialsDemoPage() {
     <div className="max-w-4xl">
       <PageHeader
         title="Client Credentials Flow"
-        breadcrumbs={[
-          { label: 'Flows', href: '/client-credentials-demo' },
-          { label: 'Client Credentials' },
-        ]}
         description="Machine-to-machine OAuth 2.0 flow with no user interaction required. Uses the UMS token endpoint for server-to-server authentication."
       />
 

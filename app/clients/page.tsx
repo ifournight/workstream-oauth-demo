@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/base/buttons/button'
 import { Card, CardContent } from '@/app/components/ui/card'
@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/application/empty-state/empty-state'
 import { Modal } from '@/app/components/ui/modal'
 import { Input } from '@/components/base/input/input'
 import { PageHeader } from '@/app/components/page-header'
+import { useBreadcrumbs } from '@/lib/breadcrumbs'
 import { toast } from 'sonner'
 
 interface Client {
@@ -32,8 +33,18 @@ const columns = [
 
 export default function GlobalClientsPage() {
   const queryClient = useQueryClient()
+  const { setBreadcrumbs } = useBreadcrumbs()
   const [showModal, setShowModal] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
+
+  // Set breadcrumbs
+  useEffect(() => {
+    setBreadcrumbs([
+      { label: 'Clients', href: '/clients' },
+      { label: 'Global Clients' },
+    ])
+    return () => setBreadcrumbs([])
+  }, [setBreadcrumbs])
 
   // Fetch clients
   const { data: clientsData, isLoading: loading, error } = useQuery({
@@ -111,10 +122,6 @@ export default function GlobalClientsPage() {
     <div className="max-w-7xl">
       <PageHeader
         title="Global Clients"
-        breadcrumbs={[
-          { label: 'Clients', href: '/clients' },
-          { label: 'Global Clients' },
-        ]}
         description="Manage all OAuth clients in Hydra without identity filtering. View, create, edit, and delete clients across all identities."
         actions={
           <Button color="primary" onClick={handleCreate}>
