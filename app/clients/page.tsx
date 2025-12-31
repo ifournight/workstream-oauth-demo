@@ -1,14 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/base/buttons/button'
 import { Card, CardContent } from '@/app/components/ui/card'
 import { Table, TableCard } from '@/components/application/table/table'
 import { LoadingIndicator } from '@/components/application/loading-indicator/loading-indicator'
 import { EmptyState } from '@/components/application/empty-state/empty-state'
-import { Modal } from '@/app/components/ui/modal'
-import { Input } from '@/components/base/input/input'
 import { PageHeader } from '@/app/components/page-header'
 import { useBreadcrumbs } from '@/lib/breadcrumbs'
 import { toast } from 'sonner'
@@ -32,10 +31,9 @@ const columns = [
 ] as const
 
 export default function GlobalClientsPage() {
+  const router = useRouter()
   const queryClient = useQueryClient()
   const { setBreadcrumbs } = useBreadcrumbs()
-  const [showModal, setShowModal] = useState(false)
-  const [editingClient, setEditingClient] = useState<Client | null>(null)
 
   // Set breadcrumbs
   useEffect(() => {
@@ -109,13 +107,14 @@ export default function GlobalClientsPage() {
   }
 
   function handleEdit(client: Client) {
-    setEditingClient(client)
-    setShowModal(true)
+    const clientId = client.client_id || client.id
+    if (clientId) {
+      router.push(`/clients/${clientId}/edit`)
+    }
   }
 
   function handleCreate() {
-    setEditingClient(null)
-    setShowModal(true)
+    router.push('/clients/create')
   }
 
   return (
@@ -171,7 +170,7 @@ export default function GlobalClientsPage() {
             </Table.Header>
             <Table.Body 
               items={clients}
-              getKey={(client: Client) => client.id || client.client_id || 'unknown'}
+              {...({ getKey: (client: Client) => client.id || client.client_id || 'unknown' } as any)}
             >
               {(client: Client) => {
                 const clientId = client.client_id || client.id || 'N/A'
@@ -219,152 +218,7 @@ export default function GlobalClientsPage() {
           </Table>
         </TableCard.Root>
       )}
-
-      <Modal
-        isOpen={showModal}
-        onClose={() => {
-          setShowModal(false)
-          setEditingClient(null)
-        }}
-        title={editingClient ? 'Edit Client' : 'Create Client'}
-      >
-        <ClientModal
-          client={editingClient}
-          onClose={() => {
-            setShowModal(false)
-            setEditingClient(null)
-          }}
-          onSave={() => {
-            setShowModal(false)
-            setEditingClient(null)
-          }}
-        />
-      </Modal>
     </div>
-  )
-}
-
-function ClientModal({
-  client,
-  onClose,
-  onSave,
-}: {
-  client: Client | null
-  onClose: () => void
-  onSave: () => void
-}) {
-  const queryClient = useQueryClient()
-  const [formData, setFormData] = useState({
-    client_name: client?.client_name || client?.name || '',
-    scope: client?.scope || 'openid offline',
-    redirect_uris: (client?.redirect_uris || []).join('\n'),
-    grant_types: client?.grant_types || ['authorization_code'],
-  })
-
-  const saveMutation = useMutation({
-    mutationFn: async (clientData: {
-      client_name: string
-      scope: string
-      redirect_uris: string[]
-      grant_types: string[]
-      response_types: string[]
-      token_endpoint_auth_method: string
-    }) => {
-      const url = client?.client_id || client?.id
-        ? `/api/clients/${client.client_id || client.id}`
-        : '/api/clients'
-      const method = client ? 'PUT' : 'POST'
-
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(clientData),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to save client')
-      }
-
-      return data
-    },
-    onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ['clients'] })
-      if (data.client_secret) {
-        toast.success('Client Created', {
-          description: `Client secret: ${data.client_secret}. Save this - it will not be shown again!`,
-          duration: 10000,
-        })
-      } else {
-        toast.success('Client Updated', {
-          description: 'Client has been successfully updated.',
-        })
-      }
-      onSave()
-    },
-    onError: (err: Error) => {
-      toast.error('Failed to Save Client', {
-        description: err.message,
-      })
-    },
-  })
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-
-    const clientData = {
-      client_name: formData.client_name,
-      scope: formData.scope,
-      redirect_uris: formData.redirect_uris.split('\n').filter((uri) => uri.trim()),
-      grant_types: formData.grant_types,
-      response_types: ['code'],
-      token_endpoint_auth_method: 'client_secret_post',
-    }
-
-    saveMutation.mutate(clientData)
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <Input
-        label="Client Name"
-        type="text"
-        value={formData.client_name}
-        onChange={(value: string) => setFormData({ ...formData, client_name: value })}
-        isRequired
-      />
-
-      <Input
-        label="Scopes (space-separated)"
-        type="text"
-        value={formData.scope}
-        onChange={(value: string) => setFormData({ ...formData, scope: value })}
-        placeholder="openid offline"
-      />
-
-      <div>
-        <label className="block text-sm font-medium text-secondary mb-1">
-          Redirect URIs (one per line)
-        </label>
-        <textarea
-          value={formData.redirect_uris}
-          onChange={(e) => setFormData({ ...formData, redirect_uris: e.target.value })}
-          className="w-full px-3 py-2 border border-primary rounded-md focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
-          rows={3}
-          placeholder="http://localhost:3000/callback"
-        />
-      </div>
-
-      <div className="flex justify-end gap-4 pt-4">
-        <Button type="button" color="secondary" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button type="submit" color="primary" isDisabled={saveMutation.isPending}>
-          {saveMutation.isPending ? 'Saving...' : 'Save'}
-        </Button>
-      </div>
-    </form>
   )
 }
 
