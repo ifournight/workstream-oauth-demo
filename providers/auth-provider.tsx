@@ -35,15 +35,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setUser(null)
         setIsAuthenticated(false)
+        
+        // If not authenticated and not already on login page, redirect to login
+        // This handles cases where SESSION_SECRET changed and old session is invalid
+        if (typeof window !== 'undefined') {
+          const currentPath = window.location.pathname
+          const isLoginPage = currentPath === '/login'
+          const isPublicRoute = currentPath.startsWith('/clients') || 
+                               currentPath.startsWith('/callback') ||
+                               currentPath.startsWith('/auth')
+          
+          if (!isLoginPage && !isPublicRoute) {
+            const returnUrl = currentPath !== '/' ? currentPath : '/'
+            router.push(`/login?return_url=${encodeURIComponent(returnUrl)}`)
+          }
+        }
       }
     } catch (error) {
       console.error('Error checking auth:', error)
       setUser(null)
       setIsAuthenticated(false)
+      
+      // On error, also redirect to login if not already there
+      if (typeof window !== 'undefined') {
+        const currentPath = window.location.pathname
+        const isLoginPage = currentPath === '/login'
+        if (!isLoginPage) {
+          const returnUrl = currentPath !== '/' ? currentPath : '/'
+          router.push(`/login?return_url=${encodeURIComponent(returnUrl)}`)
+        }
+      }
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [router])
 
   useEffect(() => {
     checkAuth()

@@ -133,7 +133,17 @@ export async function getIdentityIdFromSession(
   try {
     const session = await getSession(cookieStore)
     return session.identityId || null
-  } catch {
+  } catch (error) {
+    // Session decryption failed (e.g., SESSION_SECRET changed)
+    // Clear the invalid cookie
+    console.warn('Failed to decrypt session in getIdentityIdFromSession, clearing invalid cookie:', error)
+    try {
+      const cookieStoreToUse = cookieStore || (await cookies())
+      const invalidSession = await getIronSession<SessionData>(cookieStoreToUse, sessionOptions)
+      invalidSession.destroy()
+    } catch (clearError) {
+      console.error('Failed to clear invalid session:', clearError)
+    }
     return null
   }
 }

@@ -15,6 +15,12 @@ This project provides a Next.js application with React UI to verify OAuth 2.0 fl
    CLIENT_ID=your-client-id
    CLIENT_SECRET=your-client-secret
    NEXT_PUBLIC_BASE_URL=http://localhost:3000
+   SESSION_SECRET=your-session-secret-at-least-32-characters-long
+   ```
+   
+   **Important**: Generate a secure `SESSION_SECRET` (at least 32 characters):
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
    ```
 
 2. **Start with Docker Compose:**
@@ -44,6 +50,12 @@ This project provides a Next.js application with React UI to verify OAuth 2.0 fl
    CLIENT_ID=your-client-id
    CLIENT_SECRET=your-client-secret
    NEXT_PUBLIC_BASE_URL=http://localhost:3000
+   SESSION_SECRET=your-session-secret-at-least-32-characters-long
+   ```
+   
+   **Important**: Generate a secure `SESSION_SECRET` (at least 32 characters):
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
    ```
 
 3. **Start the development server:**
@@ -141,6 +153,21 @@ This project provides a Next.js application with React UI to verify OAuth 2.0 fl
 - ✅ **Runtime Detection** - Auto-detects Bun or Node.js and uses appropriate server
 - ✅ **Docker Support** - Run in containerized environment
 - ✅ **App Login & Session Management** - PKCE-based login flow with session management
+- ✅ **Login Flow** - Uses PKCE, password input handled by Hydra UI (see [CUSTOM_LOGIN_UI.md](./CUSTOM_LOGIN_UI.md) for custom UI implementation)
+
+## Session Management
+
+The application uses `iron-session` for session management. You **must** configure a `SESSION_SECRET` environment variable:
+
+- **Minimum length**: 32 characters
+- **Generate a secure secret**:
+  ```bash
+  node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+  ```
+- **Security**: Never commit the actual secret to version control
+- **Fallback**: If not configured, the app uses a default secret (not recommended for production)
+
+See [CALLBACK_URLS.md](./CALLBACK_URLS.md) for callback URL configuration requirements.
 
 ## OAuth Callback Routes
 
@@ -177,6 +204,17 @@ This application uses two different callback routes for different purposes:
 
 **When to use**: When you want to test OAuth flows, inspect tokens, or demonstrate OAuth functionality without affecting the application's login state.
 
+### Callback URL Configuration
+
+**Important**: Both callback URLs must be configured in your Hydra OAuth client's `redirect_uris`:
+
+- **Login flow**: `${NEXT_PUBLIC_BASE_URL}/api/auth/callback`
+- **Auth code flow**: `${NEXT_PUBLIC_BASE_URL}/callback`
+
+If the same client is used for both flows, include both URLs in the `redirect_uris` array.
+
+See [CALLBACK_URLS.md](./CALLBACK_URLS.md) for detailed configuration instructions.
+
 ### Key Differences
 
 | Feature | `/api/auth/callback` | `/callback` |
@@ -196,7 +234,9 @@ This application uses two different callback routes for different purposes:
 | `UMS_BASE_URL` | UMS base URL (for identity-specific clients and client credentials flow) | (required for UMS features) |
 | `CLIENT_ID` | OAuth client ID | (optional, can be set per request) |
 | `CLIENT_SECRET` | OAuth client secret | (optional, can be set per request) |
+| `SESSION_SECRET` | Session encryption secret (must be at least 32 characters) | (required, generate with: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`) |
 | `PORT` | Server port | `3000` |
+| `NEXT_PUBLIC_BASE_URL` | Base URL for the application (used for callback URLs) | `http://localhost:3000` |
 | `TEST_API_URL` | API endpoint for testing tokens | (default test endpoint) |
 | `COMPANY_ID` | Company ID for API calls | `eef568a4-86e4-4b51-bfeb-dc4daa831f6e` |
 
