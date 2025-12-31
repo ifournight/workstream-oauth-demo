@@ -45,8 +45,8 @@ export const navigationItems: NavigationSection[] = [
                 icon: FileCode02,
             },
             {
-                label: "Client Credentials",
-                href: "/client-credentials-demo",
+                label: "OAuth Apps Token Flow",
+                href: "/oauth-apps-token",
                 icon: Server01,
             },
         ],

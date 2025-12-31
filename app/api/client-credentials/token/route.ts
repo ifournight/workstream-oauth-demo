@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { config } from '@/lib/config'
 
-// POST /api/client-credentials/token - Get token using client credentials flow
+// Helper function to build UMS URL using URL constructor for reliable path joining
+function buildUmsUrl(path: string): string {
+  if (!config.umsBaseUrl) {
+    throw new Error('UMS_BASE_URL not configured')
+  }
+  // Use URL constructor to properly handle path joining regardless of trailing/leading slashes
+  return new URL(path, config.umsBaseUrl).toString()
+}
+
+// POST /api/client-credentials/token - Get token using OAuth apps token flow (UMS implementation)
 export async function POST(request: NextRequest) {
   try {
     if (!config.umsBaseUrl) {
@@ -12,18 +21,32 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { client_id, client_secret, scope } = body
+    const { client_id, client_secret } = body
 
-    const response = await fetch(`${config.umsBaseUrl}/auth/v1/oauth-apps/token`, {
+    if (!client_id) {
+      return NextResponse.json(
+        { error: 'client_id is required' },
+        { status: 400 }
+      )
+    }
+
+    if (!client_secret) {
+      return NextResponse.json(
+        { error: 'client_secret is required' },
+        { status: 400 }
+      )
+    }
+
+    const tokenUrl = buildUmsUrl('auth/v1/oauth-apps/token')
+    
+    const response = await fetch(tokenUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        grant_type: 'client_credentials',
-        client_id: client_id || config.clientId,
-        client_secret: client_secret || config.clientSecret,
-        scope: scope || 'openid offline',
+        client_id,
+        client_secret,
       }),
     })
 
