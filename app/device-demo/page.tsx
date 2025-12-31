@@ -3,13 +3,24 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { PageHeader } from '@/app/components/page-header'
+import { useBreadcrumbs } from '@/lib/breadcrumbs'
 import { toast } from 'sonner'
 
 export default function DeviceDemoPage() {
+  const { setBreadcrumbs } = useBreadcrumbs()
   const [deviceCode, setDeviceCode] = useState('')
   const [userCode, setUserCode] = useState('')
   const [verificationUri, setVerificationUri] = useState('')
   const [shouldPoll, setShouldPoll] = useState(false)
+
+  // Set breadcrumbs
+  useEffect(() => {
+    setBreadcrumbs([
+      { label: 'Flows', href: '/device-demo' },
+      { label: 'Device Authorization' },
+    ])
+    return () => setBreadcrumbs([])
+  }, [setBreadcrumbs])
 
   // Request device code mutation
   const requestDeviceCodeMutation = useMutation({
@@ -137,10 +148,6 @@ export default function DeviceDemoPage() {
     <div className="max-w-4xl">
       <PageHeader
         title="Device Authorization Flow"
-        breadcrumbs={[
-          { label: 'Flows', href: '/device-demo' },
-          { label: 'Device Authorization' },
-        ]}
         description="OAuth 2.0 device authorization flow for devices with limited input capabilities. Users authorize on a separate device using a user code."
       />
 

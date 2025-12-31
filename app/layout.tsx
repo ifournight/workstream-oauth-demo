@@ -4,7 +4,8 @@ import { RouteProvider } from '@/providers/router-provider';
 import { ThemeProvider } from '@/providers/theme-provider';
 import { QueryProvider } from '@/providers/query-provider';
 import { AuthProvider } from '@/providers/auth-provider';
-import { SidebarLayout } from '@/app/components/sidebar-layout';
+import { BreadcrumbProvider } from '@/lib/breadcrumbs';
+import { ConditionalLayout } from '@/app/components/conditional-layout';
 import { navigationItems } from '@/lib/navigation';
 import { Toaster } from '@/components/application/notifications/toaster';
 import "@/styles/globals.css";
@@ -32,15 +33,16 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} scroll-smooth`} suppressHydrationWarning>
       <body className="antialiased">
-
         <RouteProvider>
           <ThemeProvider>
             <QueryProvider>
               <AuthProvider>
-                <SidebarLayout navigationItems={navigationItems}>
-                  {children}
-                </SidebarLayout>
-                <Toaster />
+                <BreadcrumbProvider>
+                  <ConditionalLayout navigationItems={navigationItems}>
+                    {children}
+                  </ConditionalLayout>
+                  <Toaster />
+                </BreadcrumbProvider>
               </AuthProvider>
             </QueryProvider>
           </ThemeProvider>
@@ -49,4 +51,3 @@ export default function RootLayout({
     </html>
   )
 }
-

@@ -1,12 +1,11 @@
 "use client";
 
 import React from "react";
-import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import type { BreadcrumbItem } from "@/types";
 
 interface PageHeaderProps {
     title: string;
-    breadcrumbs?: BreadcrumbItem[];
+    breadcrumbs?: BreadcrumbItem[]; // Deprecated: breadcrumbs are now in HeaderBar
     description?: string;
     actions?: React.ReactNode;
     children?: React.ReactNode;
@@ -18,17 +17,6 @@ export function PageHeader({ title, breadcrumbs, description, actions, children,
     if (singleRow) {
         return (
             <div className="mb-8">
-                {/* Breadcrumbs */}
-                {breadcrumbs && breadcrumbs.length > 0 && (
-                    <Breadcrumbs className="mb-4">
-                        {breadcrumbs.map((crumb, index) => (
-                            <Breadcrumbs.Item key={index} href={crumb.href}>
-                                {crumb.label}
-                            </Breadcrumbs.Item>
-                        ))}
-                    </Breadcrumbs>
-                )}
-
                 {/* Single Row Header: Title, Search, Actions */}
                 <div className="flex items-center gap-4">
                     <div className="flex-1 min-w-0">
@@ -54,17 +42,6 @@ export function PageHeader({ title, breadcrumbs, description, actions, children,
 
     return (
         <div className="mb-8">
-            {/* Breadcrumbs */}
-            {breadcrumbs && breadcrumbs.length > 0 && (
-                <Breadcrumbs className="mb-4">
-                    {breadcrumbs.map((crumb, index) => (
-                        <Breadcrumbs.Item key={index} href={crumb.href}>
-                            {crumb.label}
-                        </Breadcrumbs.Item>
-                    ))}
-                </Breadcrumbs>
-            )}
-
             {/* Title and Actions */}
             <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">

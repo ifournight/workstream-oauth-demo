@@ -5,7 +5,11 @@ import { Button } from "@/components/base/buttons/button";
 import { Moon01, Sun } from "@untitledui/icons";
 import { useEffect, useState } from "react";
 
-export function ThemeToggle() {
+interface ThemeToggleProps {
+    iconOnly?: boolean;
+}
+
+export function ThemeToggle({ iconOnly = false }: ThemeToggleProps) {
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
 
@@ -18,12 +22,13 @@ export function ThemeToggle() {
         return (
             <Button
                 aria-label="Toggle theme"
-                color="secondary"
+                color="tertiary"
                 size="md"
                 iconLeading={Sun}
                 isDisabled
+                className={iconOnly ? "border-none" : ""}
             >
-                Light
+                {iconOnly ? null : "Light"}
             </Button>
         );
     }
@@ -31,12 +36,13 @@ export function ThemeToggle() {
     return (
         <Button
             aria-label="Toggle theme"
-            color="secondary"
+            color="tertiary"
             size="md"
             iconLeading={theme === "light" ? Moon01 : Sun}
             onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+            className={iconOnly ? "border-none shadow-none" : ""}
         >
-            {theme === "light" ? "Dark" : "Light"}
+            {iconOnly ? null : (theme === "light" ? "Dark" : "Light")}
         </Button>
     );
 }

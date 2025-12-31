@@ -11,6 +11,7 @@ import { InputBase, TextField } from '@/components/base/input/input'
 import { Label } from '@/components/base/input/label'
 import { FeaturedIcon } from '@/components/foundations/featured-icon/featured-icon'
 import { PageHeader } from '@/app/components/page-header'
+import { useBreadcrumbs } from '@/lib/breadcrumbs'
 import { toast } from 'sonner'
 import { LoadingIndicator } from '@/components/application/loading-indicator/loading-indicator'
 import { useAuth } from '@/hooks/use-auth'
@@ -18,10 +19,21 @@ import { useAuth } from '@/hooks/use-auth'
 export default function CreateIdentityClientPage() {
   const router = useRouter()
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
+  const { setBreadcrumbs } = useBreadcrumbs()
   const identityId = user?.identityId || ''
   const [formData, setFormData] = useState({
     client_name: '',
   })
+
+  // Set breadcrumbs
+  useEffect(() => {
+    setBreadcrumbs([
+      { label: 'Clients', href: '/clients' },
+      { label: 'Identity-Specific Clients', href: '/identity-clients' },
+      { label: 'Create Client' },
+    ])
+    return () => setBreadcrumbs([])
+  }, [setBreadcrumbs])
 
   const createMutation = useMutation({
     mutationFn: async (clientData: {
@@ -147,11 +159,6 @@ export default function CreateIdentityClientPage() {
       <div className="max-w-7xl">
         <PageHeader
           title="Create Identity Client"
-          breadcrumbs={[
-            { label: 'Clients', href: '/clients' },
-            { label: 'Identity-Specific Clients', href: '/identity-clients' },
-            { label: 'Create Client' },
-          ]}
         />
         <Card>
           <CardContent>
@@ -170,11 +177,6 @@ export default function CreateIdentityClientPage() {
       <div className="max-w-7xl">
         <PageHeader
           title="Create Identity Client"
-          breadcrumbs={[
-            { label: 'Clients', href: '/clients' },
-            { label: 'Identity-Specific Clients', href: '/identity-clients' },
-            { label: 'Create Client' },
-          ]}
         />
         <Card>
           <CardContent>
@@ -196,11 +198,6 @@ export default function CreateIdentityClientPage() {
     <div className="max-w-7xl">
       <PageHeader
         title="Create Identity Client"
-        breadcrumbs={[
-          { label: 'Clients', href: '/clients' },
-          { label: 'Identity-Specific Clients', href: '/identity-clients' },
-          { label: 'Create Client' },
-        ]}
         description="Create a new OAuth client for this identity."
       />
 

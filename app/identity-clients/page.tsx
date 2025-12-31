@@ -8,6 +8,7 @@ import { Table, TableCard } from '@/components/application/table/table'
 import { LoadingIndicator } from '@/components/application/loading-indicator/loading-indicator'
 import { EmptyState } from '@/components/application/empty-state/empty-state'
 import { PageHeader } from '@/app/components/page-header'
+import { useBreadcrumbs } from '@/lib/breadcrumbs'
 import { toast } from 'sonner'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -33,10 +34,20 @@ const columns = [
 export default function IdentityClientsPage() {
   const queryClient = useQueryClient()
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
+  const { setBreadcrumbs } = useBreadcrumbs()
   const lastErrorRef = useRef<string | null>(null)
 
   // Use identity ID directly from session
   const identityId = user?.identityId
+
+  // Set breadcrumbs
+  useEffect(() => {
+    setBreadcrumbs([
+      { label: 'Clients', href: '/clients' },
+      { label: 'Identity-Specific Clients' },
+    ])
+    return () => setBreadcrumbs([])
+  }, [setBreadcrumbs])
 
   // Fetch clients for current user's identity
   const { data: clientsData, isLoading: loading, error } = useQuery({
@@ -138,10 +149,6 @@ export default function IdentityClientsPage() {
     <div className="max-w-7xl">
       <PageHeader
         title="Identity-Specific Clients"
-        breadcrumbs={[
-          { label: 'Clients', href: '/clients' },
-          { label: 'Identity-Specific Clients' },
-        ]}
         description="Manage OAuth clients for your identity. Clients are automatically loaded based on your current session."
         singleRow
         actions={
