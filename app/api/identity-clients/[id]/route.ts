@@ -2,6 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { config } from '@/lib/config'
 import { getIdentityIdFromSession } from '@/lib/session'
 
+// Helper function to build UMS URL using URL constructor for reliable path joining
+// Handles all cases: base URL with/without trailing slash, path with/without leading slash
+function buildUmsUrl(path: string, searchParams?: Record<string, string>): string {
+  if (!config.umsBaseUrl) {
+    throw new Error('UMS_BASE_URL not configured')
+  }
+  // Use URL constructor to properly handle path joining regardless of trailing/leading slashes
+  const url = new URL(path, config.umsBaseUrl)
+  
+  // Add search parameters if provided
+  if (searchParams) {
+    Object.entries(searchParams).forEach(([key, value]) => {
+      url.searchParams.set(key, value)
+    })
+  }
+  
+  return url.toString()
+}
+
 // GET /api/identity-clients/:id - Get a single identity client
 export async function GET(
   request: NextRequest,
@@ -27,8 +46,12 @@ export async function GET(
 
     const { id: clientId } = await params
 
+    const apiUrl = buildUmsUrl(`oauth-apps/v1/${clientId}`, {
+      owner_identity_id: identityId
+    })
+    
     const response = await fetch(
-      `${config.umsBaseUrl}/oauth-apps/v1/${clientId}?owner_identity_id=${encodeURIComponent(identityId)}`,
+      apiUrl,
       {
         method: 'GET',
         headers: {
@@ -94,8 +117,12 @@ export async function PUT(
 
     const clientData = await request.json()
     
+    const apiUrl = buildUmsUrl(`oauth-apps/v1/${clientId}`, {
+      owner_identity_id: identityId
+    })
+    
     const response = await fetch(
-      `${config.umsBaseUrl}/oauth-apps/v1/${clientId}?owner_identity_id=${encodeURIComponent(identityId)}`,
+      apiUrl,
       {
         method: 'PATCH',
         headers: {
@@ -148,8 +175,12 @@ export async function DELETE(
 
     const { id: clientId } = await params
 
+    const apiUrl = buildUmsUrl(`oauth-apps/v1/${clientId}`, {
+      owner_identity_id: identityId
+    })
+    
     const response = await fetch(
-      `${config.umsBaseUrl}/oauth-apps/v1/${clientId}?owner_identity_id=${encodeURIComponent(identityId)}`,
+      apiUrl,
       {
         method: 'DELETE',
       }

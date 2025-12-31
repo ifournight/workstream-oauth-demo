@@ -67,11 +67,15 @@ export default function CreateIdentityClientPage() {
           rawResponse?: string
           status?: number
           statusText?: string
+          responseHeaders?: Record<string, string>
+          contentType?: string
         }
         error.details = data.details
         error.rawResponse = data.rawResponse || rawResponse
         error.status = data.status || response.status
         error.statusText = data.statusText || response.statusText
+        error.responseHeaders = data.responseHeaders || data._debug?.responseHeaders
+        error.contentType = data.contentType || data._debug?.contentType
         throw error
       }
 
@@ -82,11 +86,15 @@ export default function CreateIdentityClientPage() {
           rawResponse?: string
           status?: number
           statusText?: string
+          responseHeaders?: Record<string, string>
+          contentType?: string
         }
         error.details = data
         error.rawResponse = rawResponse
         error.status = response.status
         error.statusText = response.statusText
+        error.responseHeaders = data._debug?.responseHeaders
+        error.contentType = data._debug?.contentType
         throw error
       }
 
@@ -102,17 +110,45 @@ export default function CreateIdentityClientPage() {
       })
       router.push(`/identity-clients/create/success?${params.toString()}`)
     },
-    onError: (err: Error & { details?: any; rawResponse?: string; status?: number; statusText?: string }) => {
-      let description = err.message
+    onError: (err: Error & { 
+      details?: any
+      rawResponse?: string
+      status?: number
+      statusText?: string
+      responseHeaders?: Record<string, string>
+      contentType?: string
+    }) => {
+      // Log full error to console for debugging
+      console.error('[Create Identity Client Frontend] === ERROR ===')
+      console.error('[Create Identity Client Frontend] Error:', err)
+      console.error('[Create Identity Client Frontend] Error Message:', err.message)
+      console.error('[Create Identity Client Frontend] Status:', err.status, err.statusText)
+      console.error('[Create Identity Client Frontend] Raw Response:', err.rawResponse)
+      console.error('[Create Identity Client Frontend] Response Headers:', err.responseHeaders)
+      console.error('[Create Identity Client Frontend] Content-Type:', err.contentType)
+      console.error('[Create Identity Client Frontend] Details:', err.details)
+      console.error('='.repeat(80))
       
-      // Add raw response if available
-      if (err.rawResponse) {
-        description += `\n\nRaw Response:\n${err.rawResponse}`
-      }
+      let description = err.message
       
       // Add status if available
       if (err.status) {
         description += `\n\nStatus: ${err.status} ${err.statusText || ''}`
+      }
+      
+      // Add content type if available
+      if (err.contentType) {
+        description += `\n\nContent-Type: ${err.contentType}`
+      }
+      
+      // Add response headers if available
+      if (err.responseHeaders && Object.keys(err.responseHeaders).length > 0) {
+        description += `\n\nResponse Headers:\n${JSON.stringify(err.responseHeaders, null, 2)}`
+      }
+      
+      // Add raw response if available (always show, even if not JSON)
+      if (err.rawResponse) {
+        description += `\n\nRaw Response (${err.rawResponse.length} bytes):\n${err.rawResponse}`
       }
       
       // Add details if available
@@ -123,7 +159,7 @@ export default function CreateIdentityClientPage() {
       
       toast.error('Failed to Create Client', {
         description: description,
-        duration: 15000,
+        duration: 20000, // Increased duration to allow reading all debug info
       })
     },
   })
