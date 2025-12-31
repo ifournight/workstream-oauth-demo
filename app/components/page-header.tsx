@@ -10,9 +10,48 @@ interface PageHeaderProps {
     description?: string;
     actions?: React.ReactNode;
     children?: React.ReactNode;
+    /** If true, renders header in a single row with title, search, and actions */
+    singleRow?: boolean;
 }
 
-export function PageHeader({ title, breadcrumbs, description, actions, children }: PageHeaderProps) {
+export function PageHeader({ title, breadcrumbs, description, actions, children, singleRow }: PageHeaderProps) {
+    if (singleRow) {
+        return (
+            <div className="mb-8">
+                {/* Breadcrumbs */}
+                {breadcrumbs && breadcrumbs.length > 0 && (
+                    <Breadcrumbs className="mb-4">
+                        {breadcrumbs.map((crumb, index) => (
+                            <Breadcrumbs.Item key={index} href={crumb.href}>
+                                {crumb.label}
+                            </Breadcrumbs.Item>
+                        ))}
+                    </Breadcrumbs>
+                )}
+
+                {/* Single Row Header: Title, Search, Actions */}
+                <div className="flex items-center gap-4">
+                    <div className="flex-1 min-w-0">
+                        <h1 className="text-3xl font-bold text-primary">{title}</h1>
+                        {description && (
+                            <p className="mt-1 text-sm text-tertiary">{description}</p>
+                        )}
+                    </div>
+                    {children && (
+                        <div className="flex-shrink-0">
+                            {children}
+                        </div>
+                    )}
+                    {actions && (
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            {actions}
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="mb-8">
             {/* Breadcrumbs */}

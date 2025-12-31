@@ -21,9 +21,9 @@ export function Modal({ isOpen, onClose, title, children, className = '' }: Moda
         onClick={onClose}
       />
       
-      {/* Modal Container - Centers the modal */}
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <div className={`relative z-10 bg-primary rounded-lg shadow-xl max-w-lg w-full p-6 ${className}`}>
+      {/* Modal */}
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className={`relative bg-primary rounded-lg shadow-xl max-w-lg w-full p-6 ${className}`}>
           {/* Header */}
           {title && (
             <div className="flex justify-between items-center mb-4">

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/base/buttons/button'
 import { Card, CardContent } from '@/app/components/ui/card'
 import { Table, TableCard } from '@/components/application/table/table'
@@ -30,18 +31,14 @@ const columns = [
 ] as const
 
 export default function GlobalClientsPage() {
-  const [clients, setClients] = useState<Client[]>([])
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
   const [showModal, setShowModal] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
 
-  useEffect(() => {
-    loadClients()
-  }, [])
-
-  async function loadClients() {
-    try {
-      setLoading(true)
+  // Fetch clients
+  const { data: clientsData, isLoading: loading, error } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => {
       const response = await fetch('/api/clients')
       if (!response.ok) {
         const data = await response.json()
@@ -54,27 +51,22 @@ export default function GlobalClientsPage() {
             id: client.client_id || client.id || `client-${Math.random().toString(36).substr(2, 9)}`,
           }))
         : []
-      setClients(clientsWithId)
+      
       if (clientsWithId.length > 0) {
         toast.success('Clients Loaded', {
           description: `Successfully loaded ${clientsWithId.length} client${clientsWithId.length === 1 ? '' : 's'}.`,
         })
       }
-    } catch (err) {
-      toast.error('Failed to Load Clients', {
-        description: err instanceof Error ? err.message : 'Unknown error',
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
+      
+      return clientsWithId
+    },
+  })
 
-  async function handleDelete(clientId: string) {
-    if (!confirm(`Are you sure you want to delete client ${clientId}?`)) {
-      return
-    }
+  const clients = clientsData || []
 
-    try {
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (clientId: string) => {
       const response = await fetch(`/api/clients/${clientId}`, {
         method: 'DELETE',
       })
@@ -83,16 +75,25 @@ export default function GlobalClientsPage() {
         const data = await response.json()
         throw new Error(data.error || 'Failed to delete client')
       }
-
-      await loadClients()
+    },
+    onSuccess: (_: void, clientId: string) => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] })
       toast.success('Client Deleted', {
         description: `Client ${clientId} has been successfully deleted.`,
       })
-    } catch (err) {
+    },
+    onError: (err: Error) => {
       toast.error('Failed to Delete Client', {
-        description: err instanceof Error ? err.message : 'Unknown error',
+        description: err.message,
       })
+    },
+  })
+
+  async function handleDelete(clientId: string) {
+    if (!confirm(`Are you sure you want to delete client ${clientId}?`)) {
+      return
     }
+    deleteMutation.mutate(clientId)
   }
 
   function handleEdit(client: Client) {
@@ -161,7 +162,7 @@ export default function GlobalClientsPage() {
               {(column) => <Table.Head>{column.name}</Table.Head>}
             </Table.Header>
             <Table.Body items={clients}>
-              {(client) => {
+              {(client: Client) => {
                 const clientId = client.client_id || client.id || 'N/A'
                 const clientName = client.client_name || client.name || 'N/A'
                 const grantTypes = (client.grant_types || []).join(', ') || 'N/A'
@@ -222,8 +223,7 @@ export default function GlobalClientsPage() {
             setShowModal(false)
             setEditingClient(null)
           }}
-          onSave={async () => {
-            await loadClients()
+          onSave={() => {
             setShowModal(false)
             setEditingClient(null)
           }}
@@ -242,28 +242,23 @@ function ClientModal({
   onClose: () => void
   onSave: () => void
 }) {
+  const queryClient = useQueryClient()
   const [formData, setFormData] = useState({
     client_name: client?.client_name || client?.name || '',
     scope: client?.scope || 'openid offline',
     redirect_uris: (client?.redirect_uris || []).join('\n'),
     grant_types: client?.grant_types || ['authorization_code'],
   })
-  const [saving, setSaving] = useState(false)
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setSaving(true)
-
-    try {
-      const clientData = {
-        client_name: formData.client_name,
-        scope: formData.scope,
-        redirect_uris: formData.redirect_uris.split('\n').filter((uri) => uri.trim()),
-        grant_types: formData.grant_types,
-        response_types: ['code'],
-        token_endpoint_auth_method: 'client_secret_post',
-      }
-
+  const saveMutation = useMutation({
+    mutationFn: async (clientData: {
+      client_name: string
+      scope: string
+      redirect_uris: string[]
+      grant_types: string[]
+      response_types: string[]
+      token_endpoint_auth_method: string
+    }) => {
       const url = client?.client_id || client?.id
         ? `/api/clients/${client.client_id || client.id}`
         : '/api/clients'
@@ -281,6 +276,10 @@ function ClientModal({
         throw new Error(data.error || 'Failed to save client')
       }
 
+      return data
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] })
       if (data.client_secret) {
         toast.success('Client Created', {
           description: `Client secret: ${data.client_secret}. Save this - it will not be shown again!`,
@@ -291,15 +290,28 @@ function ClientModal({
           description: 'Client has been successfully updated.',
         })
       }
-
       onSave()
-    } catch (err) {
+    },
+    onError: (err: Error) => {
       toast.error('Failed to Save Client', {
-        description: err instanceof Error ? err.message : 'Unknown error',
+        description: err.message,
       })
-    } finally {
-      setSaving(false)
+    },
+  })
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+
+    const clientData = {
+      client_name: formData.client_name,
+      scope: formData.scope,
+      redirect_uris: formData.redirect_uris.split('\n').filter((uri) => uri.trim()),
+      grant_types: formData.grant_types,
+      response_types: ['code'],
+      token_endpoint_auth_method: 'client_secret_post',
     }
+
+    saveMutation.mutate(clientData)
   }
 
   return (
@@ -337,8 +349,8 @@ function ClientModal({
         <Button type="button" color="secondary" onClick={onClose}>
           Cancel
         </Button>
-        <Button type="submit" color="primary" isDisabled={saving}>
-          {saving ? 'Saving...' : 'Save'}
+        <Button type="submit" color="primary" isDisabled={saveMutation.isPending}>
+          {saveMutation.isPending ? 'Saving...' : 'Save'}
         </Button>
       </div>
     </form>

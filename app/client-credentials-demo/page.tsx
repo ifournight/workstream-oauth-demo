@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useMutation } from '@tanstack/react-query'
 import Link from 'next/link'
 import { PageHeader } from '@/app/components/page-header'
 import { toast } from 'sonner'
@@ -8,16 +9,10 @@ import { toast } from 'sonner'
 export default function ClientCredentialsDemoPage() {
   const [tokenData, setTokenData] = useState<any>(null)
   const [apiResult, setApiResult] = useState<any>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
-  async function requestToken() {
-    try {
-      setLoading(true)
-      setError(null)
-      setTokenData(null)
-      setApiResult(null)
-
+  // Request token mutation
+  const requestTokenMutation = useMutation({
+    mutationFn: async () => {
       const response = await fetch('/api/client-credentials/token', {
         method: 'POST',
         headers: {
@@ -34,43 +29,39 @@ export default function ClientCredentialsDemoPage() {
         throw new Error(data.error_description || data.error || 'Failed to get token')
       }
 
+      return data
+    },
+    onSuccess: (data: any) => {
       setTokenData(data)
+      setApiResult(null)
       toast.success('Access Token Received', {
         description: 'Successfully obtained access token using client credentials.',
       })
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      setError(errorMessage)
+    },
+    onError: (err: Error) => {
       toast.error('Failed to Get Token', {
-        description: errorMessage,
+        description: err.message,
       })
-    } finally {
-      setLoading(false)
-    }
-  }
+    },
+  })
 
-  async function testAPI() {
-    if (!tokenData?.access_token) {
-      alert('Please get an access token first')
-      return
-    }
-
-    try {
-      setLoading(true)
-      setError(null)
-
+  // Test API mutation
+  const testAPIMutation = useMutation({
+    mutationFn: async (accessToken: string) => {
       const response = await fetch('/api/test-api', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          access_token: tokenData.access_token,
+          access_token: accessToken,
         }),
       })
 
       const result = await response.json()
-
+      return result
+    },
+    onSuccess: (result: any) => {
       setApiResult(result)
       if (result.success) {
         toast.success('API Test Successful', {
@@ -81,15 +72,24 @@ export default function ClientCredentialsDemoPage() {
           description: `API call failed with status ${result.status}.`,
         })
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      setError(errorMessage)
+    },
+    onError: (err: Error) => {
       toast.error('API Test Error', {
-        description: errorMessage,
+        description: err.message,
       })
-    } finally {
-      setLoading(false)
+    },
+  })
+
+  function requestToken() {
+    requestTokenMutation.mutate()
+  }
+
+  function testAPI() {
+    if (!tokenData?.access_token) {
+      alert('Please get an access token first')
+      return
     }
+    testAPIMutation.mutate(tokenData.access_token)
   }
 
   return (
@@ -117,14 +117,14 @@ export default function ClientCredentialsDemoPage() {
         <p className="mb-4">Click the button below to get an access token using only client credentials:</p>
         <button
           onClick={requestToken}
-          disabled={loading}
+          disabled={requestTokenMutation.isPending}
           className="px-4 py-2 bg-brand-solid text-white rounded hover:bg-brand-solid_hover disabled:opacity-50"
         >
-          {loading ? 'Requesting...' : 'Get Access Token'}
+          {requestTokenMutation.isPending ? 'Requesting...' : 'Get Access Token'}
         </button>
-        {error && (
+        {requestTokenMutation.isError && (
           <div className="mt-4 p-4 bg-error-secondary border border-error text-error-primary rounded">
-            {error}
+            {requestTokenMutation.error instanceof Error ? requestTokenMutation.error.message : 'Unknown error'}
           </div>
         )}
         {tokenData && (
@@ -143,10 +143,10 @@ export default function ClientCredentialsDemoPage() {
           <p className="mb-4">Now let's test the API with the access token:</p>
           <button
             onClick={testAPI}
-            disabled={loading}
+            disabled={testAPIMutation.isPending}
             className="px-4 py-2 bg-success-solid text-white rounded hover:bg-success-solid_hover disabled:opacity-50"
           >
-            {loading ? 'Testing...' : 'Test API Call'}
+            {testAPIMutation.isPending ? 'Testing...' : 'Test API Call'}
           </button>
           {apiResult && (
             <div className={`mt-4 p-4 rounded ${apiResult.success ? 'bg-success-secondary border border-success' : 'bg-error-secondary border border-error'}`}>

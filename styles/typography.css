@@ -233,6 +233,7 @@
 
     /* Inline code element */
     &:where(code:not(pre code)) {
+        font-family: var(--font-mono);
         font-size: 0.875rem;
         line-height: 1.25rem;
         font-weight: 700;
@@ -246,6 +247,15 @@
         &::after {
             content: "";
         }
+    }
+
+    /* Code block elements */
+    &:where(pre) {
+        font-family: var(--font-mono);
+    }
+
+    &:where(pre code) {
+        font-family: var(--font-mono);
     }
 }
 
@@ -409,6 +419,7 @@
 
         /* Inline code element */
         &:where(code:not(pre code)) {
+            font-family: var(--font-mono);
             font-size: 0.875rem;
             line-height: 1.25rem;
             font-weight: 700;
@@ -417,6 +428,15 @@
             margin: calc(var(--spacing) * -0.5) 0px;
             background: var(--color-bg-secondary);
             box-shadow: 0 0 0 1px var(--color-border-secondary);
+        }
+
+        /* Code block elements */
+        &:where(pre) {
+            font-family: var(--font-mono);
+        }
+
+        &:where(pre code) {
+            font-family: var(--font-mono);
         }
     }
 }

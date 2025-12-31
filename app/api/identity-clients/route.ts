@@ -127,12 +127,10 @@ export async function POST(request: NextRequest) {
     }
     
     // Transform data format for UMS API
+    // UMS Identity client API only accepts owner_identity_id and name
     const umsRequestData: any = {
       owner_identity_id: clientData.owner_identity_id,
       name: clientData.client_name || clientData.name,
-      description: clientData.description || `OAuth application '${clientData.client_name || clientData.name}' for identity ${clientData.owner_identity_id}`,
-      // UMS expects scopes as an array of strings
-      scopes: clientData.scope ? clientData.scope.split(/\s+/).filter((s: string) => s.length > 0) : ['openid', 'offline_access'],
     }
     
     console.log('[Create Identity Client] Request to UMS:', JSON.stringify(umsRequestData, null, 2))
@@ -147,15 +145,25 @@ export async function POST(request: NextRequest) {
     })
 
     let data: any
+    let rawResponse: string = ''
     const contentType = response.headers.get('content-type')
+    
+    // Always capture raw response text first
+    const responseText = await response.text()
+    rawResponse = responseText
+    
     if (contentType && contentType.includes('application/json')) {
-      data = await response.json()
+      try {
+        data = JSON.parse(responseText)
+      } catch (e) {
+        data = { error: responseText || 'Unknown error', rawResponse: responseText }
+      }
     } else {
-      const text = await response.text()
-      data = { error: text || 'Unknown error', rawResponse: text }
+      data = { error: responseText || 'Unknown error', rawResponse: responseText }
     }
     
     console.log('[Create Identity Client] UMS Response:', response.status, JSON.stringify(data, null, 2))
+    console.log('[Create Identity Client] Raw Response:', rawResponse)
     
     if (!response.ok) {
       return NextResponse.json(
@@ -163,10 +171,59 @@ export async function POST(request: NextRequest) {
           error: data.error || data.message || 'Failed to create client',
           error_description: data.error_description,
           details: data,
+          rawResponse: rawResponse,
           status: response.status,
           statusText: response.statusText
         },
         { status: response.status }
+      )
+    }
+    
+    // Parse successful response
+    try {
+      data = JSON.parse(responseText)
+    } catch (e) {
+      // If parsing fails, treat as error even if status is 200
+      return NextResponse.json(
+        {
+          error: 'Failed to parse response from UMS',
+          error_description: 'The response from UMS was not valid JSON',
+          details: { parseError: e instanceof Error ? e.message : 'Unknown parse error' },
+          rawResponse: rawResponse,
+          status: response.status,
+          statusText: response.statusText
+        },
+        { status: 500 }
+      )
+    }
+
+    // Check if response contains error even with 200 status
+    if (data.error || data.message) {
+      return NextResponse.json(
+        {
+          error: data.error || data.message || 'Failed to create client',
+          error_description: data.error_description,
+          details: data,
+          rawResponse: rawResponse,
+          status: response.status,
+          statusText: response.statusText
+        },
+        { status: response.status >= 400 ? response.status : 400 }
+      )
+    }
+
+    // Check if required fields are missing (indicates error)
+    if (!data.id && !data.client_id && !data.name) {
+      return NextResponse.json(
+        {
+          error: 'Invalid response from UMS: missing required fields',
+          error_description: 'The response does not contain client_id, id, or name',
+          details: data,
+          rawResponse: rawResponse,
+          status: response.status,
+          statusText: response.statusText
+        },
+        { status: 500 }
       )
     }
 
@@ -181,6 +238,8 @@ export async function POST(request: NextRequest) {
       redirect_uris: data.redirect_uris || [],
       token_endpoint_auth_method: data.token_endpoint_auth_method || 'client_secret_post',
       owner_identity_id: data.owner_identity_id,
+      // Include raw response for display
+      rawResponse: rawResponse,
       // Include all original fields
       ...data
     }

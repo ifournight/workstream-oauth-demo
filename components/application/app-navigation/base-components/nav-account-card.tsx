@@ -11,6 +11,7 @@ import { AvatarLabelGroup } from "@/components/base/avatar/avatar-label-group";
 import { Button } from "@/components/base/buttons/button";
 import { RadioButtonBase } from "@/components/base/radio-buttons/radio-buttons";
 import { useBreakpoint } from "@/hooks/use-breakpoint";
+import { useAuth } from "@/hooks/use-auth";
 import { cx } from "@/utils/cx";
 
 type NavAccountType = {
@@ -46,10 +47,20 @@ const placeholderAccounts: NavAccountType[] = [
 export const NavAccountMenu = ({
     className,
     selectedAccountId = "olivia",
+    onSignOut,
     ...dialogProps
-}: AriaDialogProps & { className?: string; accounts?: NavAccountType[]; selectedAccountId?: string }) => {
+}: AriaDialogProps & { className?: string; accounts?: NavAccountType[]; selectedAccountId?: string; onSignOut?: () => void }) => {
     const focusManager = useFocusManager();
     const dialogRef = useRef<HTMLDivElement>(null);
+    const { logout } = useAuth();
+
+    const handleSignOut = useCallback(() => {
+        if (onSignOut) {
+            onSignOut();
+        } else {
+            logout();
+        }
+    }, [onSignOut, logout]);
 
     const onKeyDown = useCallback(
         (e: KeyboardEvent) => {
@@ -165,13 +176,37 @@ export const NavAccountCard = ({
 }) => {
     const triggerRef = useRef<HTMLDivElement>(null);
     const isDesktop = useBreakpoint("lg");
+    const { user, isAuthenticated, isLoading } = useAuth();
 
-    const selectedAccount = placeholderAccounts.find((account) => account.id === selectedAccountId);
+    // Use real user data if authenticated, otherwise use placeholder
+    const displayName = user?.identityId ? `User ${user.identityId.substring(0, 8)}` : "Guest";
+    const displayEmail = user?.identityId ? `${user.identityId}@workstream.is` : "guest@workstream.is";
+    const displayAvatar = undefined; // No avatar for now
 
-    if (!selectedAccount) {
-        console.warn(`Account with ID ${selectedAccountId} not found in <NavAccountCard />`);
-        return null;
+    // Show loading state or placeholder if not authenticated
+    if (isLoading) {
+        return (
+            <div className="relative flex items-center gap-3 rounded-xl p-3 ring-1 ring-secondary ring-inset">
+                <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse" />
+                <div className="flex-1 space-y-2">
+                    <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-3 w-32 bg-gray-200 rounded animate-pulse" />
+                </div>
+            </div>
+        );
     }
+
+    if (!isAuthenticated || !user) {
+        return null; // Don't show account card if not authenticated
+    }
+
+    const selectedAccount = {
+        id: user.identityId || "guest",
+        name: displayName,
+        email: displayEmail,
+        avatar: displayAvatar || "",
+        status: "online" as const,
+    };
 
     return (
         <div ref={triggerRef} className="relative flex items-center gap-3 rounded-xl p-3 ring-1 ring-secondary ring-inset">
@@ -181,6 +216,7 @@ export const NavAccountCard = ({
                 title={selectedAccount.name}
                 subtitle={selectedAccount.email}
                 status={selectedAccount.status}
+                data-cy="nav-account-card"
             />
 
             <div className="absolute top-1.5 right-1.5">
