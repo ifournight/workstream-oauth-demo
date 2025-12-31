@@ -4,10 +4,10 @@ import { config } from '@/lib/config'
 // GET /api/clients/:id - Get a single client
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const clientId = params.id
+    const { id: clientId } = await params
     const response = await fetch(`${config.hydraAdminUrl}/admin/clients/${clientId}`, {
       method: 'GET',
       headers: {
@@ -36,10 +36,10 @@ export async function GET(
 // PUT /api/clients/:id - Update a client
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const clientId = params.id
+    const { id: clientId } = await params
     const clientData = await request.json()
     
     const response = await fetch(`${config.hydraAdminUrl}/admin/clients/${clientId}`, {
@@ -71,10 +71,10 @@ export async function PUT(
 // DELETE /api/clients/:id - Delete a client
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const clientId = params.id
+    const { id: clientId } = await params
     
     const response = await fetch(`${config.hydraAdminUrl}/admin/clients/${clientId}`, {
       method: 'DELETE',

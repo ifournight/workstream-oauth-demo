@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { unsealData } from 'iron-session'
+import { sessionOptions } from '@/lib/session'
 
 /**
  * Middleware to protect routes that require authentication
@@ -17,6 +19,8 @@ export async function middleware(request: NextRequest) {
     '/api/auth/login', 
     '/api/auth/callback',
     '/api/clients', // Allow client management API
+    '/callback', // OAuth callback page (for auth code flow demo)
+    '/auth', // Auth code flow page
   ]
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
   
@@ -30,20 +34,46 @@ export async function middleware(request: NextRequest) {
 
   // Check if session is valid
   try {
-    // In middleware, we need to check cookies directly
-    // iron-session requires a cookie store, but middleware has limited access
-    // So we check for the session cookie existence and basic validation
     const sessionCookie = request.cookies.get('auth_session')
     
     if (!sessionCookie) {
-      // Redirect to login with return URL
+      // No session cookie, redirect to login
       const loginUrl = new URL('/login', request.url)
       loginUrl.searchParams.set('return_url', pathname)
       return NextResponse.redirect(loginUrl)
     }
 
-    // If cookie exists, allow through (full validation happens in API routes)
-    return NextResponse.next()
+    // Try to decrypt and validate session
+    // If SESSION_SECRET changed, this will fail and we'll clear the invalid cookie
+    try {
+      const cookieValue = sessionCookie.value
+      
+      // Use unsealData to decrypt the session cookie
+      const session = await unsealData<{ accessToken?: string; identityId?: string; expiresAt?: number }>(
+        cookieValue,
+        {
+          password: sessionOptions.password,
+        }
+      )
+      
+      // Check if session has access token (indicates valid session)
+      if (!session.accessToken) {
+        // Session exists but has no access token - clear and redirect
+        const response = NextResponse.redirect(new URL('/login', request.url))
+        response.cookies.delete('auth_session')
+        return response
+      }
+      
+      // Session is valid, allow through
+      return NextResponse.next()
+    } catch (decryptError) {
+      // Session decryption failed (e.g., SESSION_SECRET changed)
+      // Clear invalid cookie and redirect to login
+      console.warn('Session decryption failed in middleware, clearing invalid cookie:', decryptError)
+      const response = NextResponse.redirect(new URL('/login', request.url))
+      response.cookies.delete('auth_session')
+      return response
+    }
   } catch (error) {
     console.error('Middleware error:', error)
     // On error, redirect to login

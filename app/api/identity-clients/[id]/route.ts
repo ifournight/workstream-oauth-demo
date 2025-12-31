@@ -5,7 +5,7 @@ import { getIdentityIdFromSession } from '@/lib/session'
 // GET /api/identity-clients/:id - Get a single identity client
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     if (!config.umsBaseUrl) {
@@ -25,7 +25,7 @@ export async function GET(
       )
     }
 
-    const clientId = params.id
+    const { id: clientId } = await params
 
     const response = await fetch(
       `${config.umsBaseUrl}/oauth-apps/v1/${clientId}?owner_identity_id=${encodeURIComponent(identityId)}`,
@@ -70,7 +70,7 @@ export async function GET(
 // PUT /api/identity-clients/:id - Update an identity client
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     if (!config.umsBaseUrl) {
@@ -90,7 +90,7 @@ export async function PUT(
       )
     }
 
-    const clientId = params.id
+    const { id: clientId } = await params
 
     const clientData = await request.json()
     
@@ -126,7 +126,7 @@ export async function PUT(
 // DELETE /api/identity-clients/:id - Delete an identity client
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     if (!config.umsBaseUrl) {
@@ -146,7 +146,7 @@ export async function DELETE(
       )
     }
 
-    const clientId = params.id
+    const { id: clientId } = await params
 
     const response = await fetch(
       `${config.umsBaseUrl}/oauth-apps/v1/${clientId}?owner_identity_id=${encodeURIComponent(identityId)}`,

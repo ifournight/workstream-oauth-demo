@@ -9,7 +9,25 @@ import { getIdentityIdFromToken, isTokenExpired, decodeAccessToken, getTokenExpi
 export async function GET(request: NextRequest) {
   try {
     const cookieStore = await import('next/headers').then(m => m.cookies())
-    const session = await getSession(cookieStore)
+    
+    // Try to get session - if SESSION_SECRET changed, this will fail to decrypt
+    let session
+    try {
+      session = await getSession(cookieStore)
+    } catch (error) {
+      // Session decryption failed (e.g., SESSION_SECRET changed)
+      // Clear the invalid cookie
+      console.warn('Failed to decrypt session, clearing invalid cookie:', error)
+      try {
+        await clearSession(cookieStore)
+      } catch (clearError) {
+        console.error('Failed to clear invalid session:', clearError)
+      }
+      return NextResponse.json(
+        { authenticated: false, user: null },
+        { status: 200 }
+      )
+    }
     
     if (!session.accessToken) {
       return NextResponse.json(
