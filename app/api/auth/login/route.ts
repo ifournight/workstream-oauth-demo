@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
   const scope = searchParams.get('scope') || 'openid offline'
   
   // Use callback URL for login flow
+  // Use /api/auth/callback as the redirect URI for login flow
   const redirectUri = searchParams.get('redirect_uri') || 
     `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/auth/callback`
   

@@ -42,7 +42,9 @@ export async function GET(request: NextRequest) {
     const returnUrl = cookieStore.get('login_return_url')?.value || '/'
 
     const finalClientId = storedClientId || config.clientId
-    const finalRedirectUri = storedRedirectUri || `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/auth/callback`
+    // Use /api/auth/callback as the redirect URI for login flow
+    const finalRedirectUri = storedRedirectUri || 
+      `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/auth/callback`
 
     if (!finalClientId) {
       redirect('/login?error=missing_client_id')
@@ -100,10 +102,31 @@ export async function GET(request: NextRequest) {
     cookieStore.delete('flow_redirect_uri')
     cookieStore.delete('login_return_url')
 
-    // Redirect to return URL or home page
-    redirect(returnUrl)
+    // Get identity ID for success message
+    const identityId = getIdentityIdFromToken(access_token)
+    
+    // Redirect to return URL with success parameter
+    const redirectUrl = returnUrl.includes('?') 
+      ? `${returnUrl}&login=success&identity_id=${encodeURIComponent(identityId || '')}`
+      : `${returnUrl}?login=success&identity_id=${encodeURIComponent(identityId || '')}`
+    
+    redirect(redirectUrl)
   } catch (error) {
+    // Next.js redirect() throws a special error that should be re-thrown
+    // Check if this is a redirect error by checking for NEXT_REDIRECT in the error
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    const errorString = JSON.stringify(error)
+    
+    // If this is a redirect error, re-throw it so Next.js can handle it properly
+    if (
+      errorMessage.includes('NEXT_REDIRECT') ||
+      errorString.includes('NEXT_REDIRECT') ||
+      (error && typeof error === 'object' && 'digest' in error && String(error.digest).includes('NEXT_REDIRECT'))
+    ) {
+      throw error // Re-throw redirect errors
+    }
+    
     console.error('Callback error:', error)
-    redirect(`/login?error=callback_error&error_description=${encodeURIComponent(error instanceof Error ? error.message : 'Unknown error')}`)
+    redirect(`/login?error=callback_error&error_description=${encodeURIComponent(errorMessage)}`)
   }
 }

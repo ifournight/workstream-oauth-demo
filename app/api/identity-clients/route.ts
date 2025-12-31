@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { config } from '@/lib/config'
+import { getIdentityIdFromSession } from '@/lib/session'
 
 // GET /api/identity-clients - List clients for an identity
 export async function GET(request: NextRequest) {
@@ -11,13 +12,13 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const { searchParams } = new URL(request.url)
-    const identityId = searchParams.get('identity_id')
+    // Get identity ID from session
+    const identityId = await getIdentityIdFromSession()
     
     if (!identityId) {
       return NextResponse.json(
-        { error: 'identity_id query parameter is required' },
-        { status: 400 }
+        { error: 'Authentication required. Please log in.' },
+        { status: 401 }
       )
     }
 
@@ -117,19 +118,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const clientData = await request.json()
+    // Get identity ID from session
+    const identityId = await getIdentityIdFromSession()
     
-    if (!clientData.owner_identity_id) {
+    if (!identityId) {
       return NextResponse.json(
-        { error: 'owner_identity_id is required in request body' },
-        { status: 400 }
+        { error: 'Authentication required. Please log in.' },
+        { status: 401 }
       )
     }
+
+    const clientData = await request.json()
     
     // Transform data format for UMS API
     // UMS Identity client API only accepts owner_identity_id and name
+    // Use identity ID from session, not from request body
     const umsRequestData: any = {
-      owner_identity_id: clientData.owner_identity_id,
+      owner_identity_id: identityId,
       name: clientData.client_name || clientData.name,
     }
     

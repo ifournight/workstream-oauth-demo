@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useMutation } from '@tanstack/react-query'
 import { Building05 } from '@untitledui/icons'
 import { Heading as AriaHeading } from 'react-aria-components'
@@ -13,11 +13,12 @@ import { FeaturedIcon } from '@/components/foundations/featured-icon/featured-ic
 import { PageHeader } from '@/app/components/page-header'
 import { toast } from 'sonner'
 import { LoadingIndicator } from '@/components/application/loading-indicator/loading-indicator'
+import { useAuth } from '@/hooks/use-auth'
 
 export default function CreateIdentityClientPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const identityId = searchParams.get('identity_id') || ''
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth()
+  const identityId = user?.identityId || ''
   const [formData, setFormData] = useState({
     client_name: '',
   })
@@ -140,7 +141,8 @@ export default function CreateIdentityClientPage() {
     createMutation.mutate(clientData)
   }
 
-  if (!identityId) {
+  // Show loading state while checking auth
+  if (authLoading) {
     return (
       <div className="max-w-7xl">
         <PageHeader
@@ -154,10 +156,33 @@ export default function CreateIdentityClientPage() {
         <Card>
           <CardContent>
             <div className="py-12">
-              <p className="text-center text-tertiary">Identity ID is required. Please go back and enter an identity ID.</p>
+              <LoadingIndicator size="md" label="Loading..." />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Show error if not authenticated
+  if (!isAuthenticated || !identityId) {
+    return (
+      <div className="max-w-7xl">
+        <PageHeader
+          title="Create Identity Client"
+          breadcrumbs={[
+            { label: 'Clients', href: '/clients' },
+            { label: 'Identity-Specific Clients', href: '/identity-clients' },
+            { label: 'Create Client' },
+          ]}
+        />
+        <Card>
+          <CardContent>
+            <div className="py-12">
+              <p className="text-center text-tertiary">Authentication required. Please log in to create clients.</p>
               <div className="mt-4 flex justify-center">
-                <Button color="secondary" onClick={() => router.push('/identity-clients')}>
-                  Go Back
+                <Button color="primary" onClick={() => router.push('/login')}>
+                  Go to Login
                 </Button>
               </div>
             </div>

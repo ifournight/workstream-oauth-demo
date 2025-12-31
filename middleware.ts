@@ -10,7 +10,14 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Public routes that don't require authentication
-  const publicRoutes = ['/login', '/api/auth/login', '/api/auth/callback']
+  // Allow /clients and /api/clients for client management (needed before login)
+  const publicRoutes = [
+    '/login', 
+    '/clients', 
+    '/api/auth/login', 
+    '/api/auth/callback',
+    '/api/clients', // Allow client management API
+  ]
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
   
   // API auth routes are always public

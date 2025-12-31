@@ -13,7 +13,6 @@ export default function CreateIdentityClientSuccessPage() {
   const searchParams = useSearchParams()
   const [responseData, setResponseData] = useState<any>(null)
   const [rawResponse, setRawResponse] = useState<string>('')
-  const identityId = searchParams.get('identity_id') || ''
 
   useEffect(() => {
     const responseParam = searchParams.get('response')
@@ -180,7 +179,7 @@ export default function CreateIdentityClientSuccessPage() {
         <div className="flex gap-4 justify-end">
           <Button 
             color="secondary" 
-            onClick={() => router.push(`/identity-clients?identity_id=${encodeURIComponent(identityId)}`)}
+            onClick={() => router.push('/identity-clients')}
           >
             View All Clients
           </Button>

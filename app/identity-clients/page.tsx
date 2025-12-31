@@ -63,7 +63,7 @@ export default function IdentityClientsPage() {
         return []
       }
 
-      const response = await fetch(`/api/identity-clients?identity_id=${encodeURIComponent(debouncedIdentityId)}`)
+      const response = await fetch(`/api/identity-clients`)
       const data = await response.json()
       
       if (!response.ok) {
@@ -83,7 +83,7 @@ export default function IdentityClientsPage() {
       
       return clientsWithId
     },
-    enabled: !!debouncedIdentityId.trim(),
+    enabled: !!user?.identityId && !!debouncedIdentityId.trim(),
   })
 
   const clients = clientsData || []
@@ -114,7 +114,7 @@ export default function IdentityClientsPage() {
       }
 
       const response = await fetch(
-        `/api/identity-clients/${clientId}?identity_id=${encodeURIComponent(identityId)}`,
+        `/api/identity-clients/${clientId}`,
         {
           method: 'DELETE',
         }
@@ -146,14 +146,14 @@ export default function IdentityClientsPage() {
   }
 
   function handleCreate() {
-    if (!identityId.trim()) {
-      toast.error('Identity ID Required', {
-        description: 'Please enter an Identity ID first.',
+    if (!user?.identityId) {
+      toast.error('Authentication Required', {
+        description: 'Please log in to create clients.',
       })
       return
     }
-    // Navigate to create page
-    window.location.href = `/identity-clients/create?identity_id=${encodeURIComponent(identityId)}`
+    // Navigate to create page (no need to pass identity_id in URL anymore)
+    window.location.href = `/identity-clients/create`
   }
 
   return (
