@@ -151,6 +151,10 @@ This demo application showcases three key capabilities:
 │   ├── auth-code-flow.ts           # Authorization Code flow demo
 │   ├── device-flow.ts              # Device Authorization flow demo
 │   └── client-credentials-flow.ts  # Client Credentials flow demo
+├── docs/                            # Documentation site (Nextra)
+│   ├── pages/                      # Documentation pages
+│   ├── theme.config.tsx            # Nextra theme configuration
+│   └── next.config.js             # Next.js configuration for docs
 ├── package.json
 ├── next.config.js                   # Next.js configuration
 ├── tailwind.config.js               # Tailwind CSS configuration
@@ -217,8 +221,8 @@ The application uses `iron-session` for session management. You **must** configu
 4. Available features:
    - **Login** - Simulate Workstream login to obtain identity ID
    - **My OAuth Clients** - Manage OAuth clients for your identity (default page)
-   - **Global Clients** - Manage all OAuth clients in Hydra
    - **OAuth Apps Token Flow** - Exchange client ID/secret for access tokens
+   - **Global Clients** - Manage all OAuth clients in Hydra (accessible via direct URL: `/clients`)
 
 ### Client Management
 
@@ -316,6 +320,88 @@ If API calls return 401, check:
 - Token hasn't expired
 
 The demo includes JWT token decoding to help diagnose issues.
+
+## Deployment
+
+### Vercel Deployment
+
+This project can be deployed to Vercel using the Import Project feature, which automatically configures continuous deployment from your Git repository.
+
+#### Option 1: Import Project (Recommended for Main App)
+
+**For Main Application:**
+
+1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
+2. Click **"Add New..."** → **"Project"**
+3. Click **"Import Project"** → **"Import Git Repository"**
+4. Select your GitHub repository
+5. Vercel will automatically detect Next.js and configure the project
+6. Configure environment variables (see below)
+7. Click **"Deploy"**
+
+Vercel will automatically:
+- Set up continuous deployment (deploys on every push to `main`)
+- Configure build settings for Next.js
+- Provide a production URL
+
+**For Documentation Site:**
+
+1. Create a second project in Vercel
+2. Import the same repository
+3. In **Project Settings** → **General** → **Root Directory**, set it to `docs`
+4. Vercel will detect Next.js in the docs directory
+5. Deploy
+
+#### Why Import Project?
+
+Using Vercel's Import Project is recommended because:
+- **Automatic Configuration**: Vercel automatically detects Next.js and configures everything
+- **Continuous Deployment**: Automatically deploys on every push to `main` branch
+- **No Manual Setup**: No need to configure GitHub Actions or secrets
+- **Preview Deployments**: Each PR automatically gets a preview URL
+
+#### Environment Variables
+
+Configure the following environment variables in your Vercel project settings:
+
+**Main Application:**
+- `HYDRA_PUBLIC_URL`
+- `HYDRA_ADMIN_URL`
+- `UMS_BASE_URL`
+- `CLIENT_ID`
+- `CLIENT_SECRET`
+- `SESSION_SECRET` (must be at least 32 characters)
+- `NEXT_PUBLIC_BASE_URL` (set to your deployed Vercel URL, e.g., `https://your-app.vercel.app`)
+
+**Documentation Site:**
+- Usually no environment variables needed (static site)
+
+#### Deployment Process
+
+**Deployment Process:**
+1. Push to `main` branch → Vercel automatically deploys both projects
+2. View deployments in Vercel Dashboard
+3. Each deployment gets a unique preview URL
+4. Each PR automatically gets a preview deployment
+
+#### Network Limitations
+
+**Important**: The deployed application requires access to Workstream's private network via OpenVPN. When deployed to Vercel:
+
+- The application may not be able to access private network endpoints (Hydra, UMS) without VPN
+- This limitation will be resolved when public APIs are available
+- Users without OpenVPN access will need to wait for public API availability
+
+#### Documentation Site
+
+The documentation site is built with Nextra and includes:
+
+- Multi-language support (English and Simplified Chinese)
+- Guides for creating OAuth clients
+- Guides for obtaining access tokens
+- Code examples in multiple languages (JavaScript, Python, cURL)
+
+Access the documentation at the deployed Vercel URL for the docs project.
 
 ## References
 

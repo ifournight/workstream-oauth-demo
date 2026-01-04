@@ -2,7 +2,6 @@
 
 import type { NavItemType } from "@/components/application/app-navigation/config";
 import { 
-    Users01, 
     Key01, 
     Settings01,
     Server01,
@@ -22,11 +21,6 @@ export const navigationItems: NavigationSection[] = [
                 label: "My OAuth Clients",
                 href: "/identity-clients",
                 icon: Key01,
-            },
-            {
-                label: "Global Clients",
-                href: "/clients",
-                icon: Users01,
             },
         ],
     },

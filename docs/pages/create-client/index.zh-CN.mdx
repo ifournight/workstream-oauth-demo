@@ -1,0 +1,72 @@
+# 如何创建 OAuth 客户端
+
+本指南将引导您通过演示应用程序创建 OAuth 客户端。
+
+## 前置要求
+
+- 访问演示应用程序
+- 有效的用户账户（需要身份验证）
+
+## 创建 OAuth 客户端的步骤
+
+### 步骤 1: 访问演示应用程序
+
+导航到演示应用程序 URL（例如：`https://your-demo-app.vercel.app`）。
+
+### 步骤 2: 登录
+
+如果您尚未登录，将被重定向到登录页面。完成身份验证流程以获取您的身份 ID。
+
+### 步骤 3: 导航到"我的 OAuth 客户端"
+
+登录后，从侧边栏导航中导航到 **"我的 OAuth 客户端"** 页面。
+
+### 步骤 4: 创建新客户端
+
+1. 点击 **"+ 创建客户端"** 按钮
+2. 您将被带到创建客户端页面
+3. 填写 **客户端名称** 字段（例如："我的 OAuth 应用"）
+4. **所有者身份 ID** 字段将自动填充您的身份 ID
+5. 点击 **"创建客户端"** 提交
+
+### 步骤 5: 保存您的凭据
+
+成功创建后，您将被重定向到成功页面，该页面显示：
+
+- **客户端 ID** (`client_id`)
+- **客户端密钥** (`client_secret`)
+- 其他客户端配置详细信息
+
+**⚠️ 重要提示**：客户端密钥只显示一次。请确保立即复制并安全存储 `client_id` 和 `client_secret`。
+
+## 响应格式
+
+API 返回具有以下结构的 JSON 响应：
+
+```json
+{
+  "client_id": "your-client-id",
+  "client_secret": "your-client-secret",
+  "client_name": "我的 OAuth 应用",
+  "grant_types": ["client_credentials"],
+  "response_types": ["code"],
+  "scope": "openid offline",
+  "redirect_uris": [],
+  "token_endpoint_auth_method": "client_secret_post",
+  "owner_identity_id": "your-identity-id"
+}
+```
+
+## 下一步
+
+获得客户端凭据后，您可以：
+
+- [获取访问令牌](/get-token) 使用您的 `client_id` 和 `client_secret`
+- 使用访问令牌进行经过身份验证的 API 调用
+
+## 注意事项
+
+- 每个客户端都绑定到您的身份（用户账户）
+- 您可以为不同的应用程序创建多个客户端
+- 如果丢失，客户端密钥无法稍后检索 - 请安全存储
+- 当前使用 UMS API - 将来将替换为公共 API
