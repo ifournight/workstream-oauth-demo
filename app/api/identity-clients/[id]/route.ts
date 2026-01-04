@@ -107,10 +107,14 @@ export async function PUT(
     const { getUserManagementAPIDocs } = await import('@/generated/ums-api')
     const api = getUserManagementAPIDocs()
     
+    // Prepare update data with owner_identity_id
+    const updateData = {
+      ...clientData,
+      owner_identity_id: identityId,
+    }
+    
     try {
-      const response = await api.updateOauthApp(clientId, clientData, {
-        owner_identity_id: identityId,
-      })
+      const response = await api.updateOauthApp(clientId, updateData)
 
       if (!response.data) {
         return NextResponse.json(
