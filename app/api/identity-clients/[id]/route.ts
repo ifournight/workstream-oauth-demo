@@ -1,25 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { config } from '@/lib/config'
 import { getIdentityIdFromSession } from '@/lib/session'
-
-// Helper function to build UMS URL using URL constructor for reliable path joining
-// Handles all cases: base URL with/without trailing slash, path with/without leading slash
-function buildUmsUrl(path: string, searchParams?: Record<string, string>): string {
-  if (!config.umsBaseUrl) {
-    throw new Error('UMS_BASE_URL not configured')
-  }
-  // Use URL constructor to properly handle path joining regardless of trailing/leading slashes
-  const url = new URL(path, config.umsBaseUrl)
-  
-  // Add search parameters if provided
-  if (searchParams) {
-    Object.entries(searchParams).forEach(([key, value]) => {
-      url.searchParams.set(key, value)
-    })
-  }
-  
-  return url.toString()
-}
+// Import generated API functions from Orval
+// Note: Run `bun run generate:api` first to generate these functions
+import { getUserManagementAPIDocs } from '@/generated/ums-api'
 
 // GET /api/identity-clients/:id - Get a single identity client
 export async function GET(
@@ -46,43 +30,44 @@ export async function GET(
 
     const { id: clientId } = await params
 
-    const apiUrl = buildUmsUrl(`oauth-apps/v1/${clientId}`, {
-      owner_identity_id: identityId
-    })
-    
-    const response = await fetch(
-      apiUrl,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+    try {
+      const api = getUserManagementAPIDocs()
+      const response = await api.getOauthApp(clientId, {
+        owner_identity_id: identityId,
+      })
+
+      if (!response.data) {
+        return NextResponse.json(
+          { error: 'Failed to fetch client' },
+          { status: 500 }
+        )
       }
-    )
 
-    if (!response.ok) {
-      const error = await response.text()
-      return NextResponse.json(
-        { error: error || 'Failed to fetch client' },
-        { status: response.status }
-      )
+      // Transform UMS response to match Hydra client format for frontend compatibility
+      const transformedClient = {
+        client_id: response.data.client_id || response.data.id,
+        client_name: response.data.name,
+        grant_types: response.data.grant_types || [],
+        response_types: response.data.response_types || [],
+        scope: Array.isArray(response.data.scopes) ? response.data.scopes.join(' ') : response.data.scopes || '',
+        redirect_uris: response.data.redirect_uris || [],
+        token_endpoint_auth_method: response.data.token_endpoint_auth_method || 'client_secret_post',
+        owner_identity_id: response.data.owner_identity_id,
+        ...response.data
+      }
+      return NextResponse.json(transformedClient)
+    } catch (fetchError: any) {
+      // Handle axios errors
+      if (fetchError.response) {
+        const errorText = fetchError.response.data?.error || fetchError.response.data || 'Failed to fetch client'
+        return NextResponse.json(
+          { error: errorText },
+          { status: fetchError.response.status || 500 }
+        )
+      }
+      throw fetchError
     }
-
-    const client = await response.json()
-    // Transform UMS response to match Hydra client format for frontend compatibility
-    const transformedClient = {
-      client_id: client.client_id || client.id,
-      client_name: client.name,
-      grant_types: client.grant_types || [],
-      response_types: client.response_types || [],
-      scope: Array.isArray(client.scopes) ? client.scopes.join(' ') : client.scopes || '',
-      redirect_uris: client.redirect_uris || [],
-      token_endpoint_auth_method: client.token_endpoint_auth_method || 'client_secret_post',
-      owner_identity_id: client.owner_identity_id,
-      ...client
-    }
-    return NextResponse.json(transformedClient)
-  } catch (error) {
+  } catch (error: any) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -114,35 +99,37 @@ export async function PUT(
     }
 
     const { id: clientId } = await params
-
     const clientData = await request.json()
     
-    const apiUrl = buildUmsUrl(`oauth-apps/v1/${clientId}`, {
-      owner_identity_id: identityId
-    })
+    // Import generated API functions from Orval
+    const { getUserManagementAPIDocs } = await import('@/generated/ums-api')
+    const api = getUserManagementAPIDocs()
     
-    const response = await fetch(
-      apiUrl,
-      {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(clientData),
+    try {
+      const response = await api.updateOauthApp(clientId, clientData, {
+        owner_identity_id: identityId,
+      })
+
+      if (!response.data) {
+        return NextResponse.json(
+          { error: 'Failed to update client' },
+          { status: 500 }
+        )
       }
-    )
 
-    const data = await response.json()
-    
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: data.error || 'Failed to update client', ...data },
-        { status: response.status }
-      )
+      return NextResponse.json(response.data)
+    } catch (fetchError: any) {
+      // Handle axios errors
+      if (fetchError.response) {
+        const errorData = fetchError.response.data
+        return NextResponse.json(
+          { error: errorData?.error || 'Failed to update client', ...errorData },
+          { status: fetchError.response.status || 500 }
+        )
+      }
+      throw fetchError
     }
-
-    return NextResponse.json(data)
-  } catch (error) {
+  } catch (error: any) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -175,27 +162,28 @@ export async function DELETE(
 
     const { id: clientId } = await params
 
-    const apiUrl = buildUmsUrl(`oauth-apps/v1/${clientId}`, {
-      owner_identity_id: identityId
-    })
+    // Import generated API functions from Orval
+    const { getUserManagementAPIDocs } = await import('@/generated/ums-api')
+    const api = getUserManagementAPIDocs()
     
-    const response = await fetch(
-      apiUrl,
-      {
-        method: 'DELETE',
+    try {
+      await api.deleteOauthApp(clientId, {
+        owner_identity_id: identityId,
+      })
+
+      return NextResponse.json({ success: true, message: 'Client deleted successfully' })
+    } catch (fetchError: any) {
+      // Handle axios errors
+      if (fetchError.response) {
+        const errorText = fetchError.response.data?.error || fetchError.response.data || 'Failed to delete client'
+        return NextResponse.json(
+          { error: errorText },
+          { status: fetchError.response.status || 500 }
+        )
       }
-    )
-
-    if (!response.ok) {
-      const error = await response.text()
-      return NextResponse.json(
-        { error: error || 'Failed to delete client' },
-        { status: response.status }
-      )
+      throw fetchError
     }
-
-    return NextResponse.json({ success: true, message: 'Client deleted successfully' })
-  } catch (error) {
+  } catch (error: any) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

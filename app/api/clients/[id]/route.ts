@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { config } from '@/lib/config'
+// Import generated API functions from Orval
+// Note: Run `bun run generate:api` first to generate these functions
+import { getOryHydraAPI } from '@/generated/hydra-api'
 
 // GET /api/clients/:id - Get a single client
 export async function GET(
@@ -8,24 +10,27 @@ export async function GET(
 ) {
   try {
     const { id: clientId } = await params
-    const response = await fetch(`${config.hydraAdminUrl}/admin/clients/${clientId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
+    const api = getOryHydraAPI()
+    const response = await api.getOAuth2Client(clientId)
 
-    if (!response.ok) {
-      const error = await response.text()
+    if (!response.data) {
       return NextResponse.json(
-        { error: error || 'Failed to fetch client' },
-        { status: response.status }
+        { error: 'Failed to fetch client' },
+        { status: 500 }
       )
     }
 
-    const client = await response.json()
-    return NextResponse.json(client)
-  } catch (error) {
+    return NextResponse.json(response.data)
+  } catch (error: any) {
+    // Handle axios errors
+    if (error.response) {
+      const errorText = error.response.data?.error || error.response.data || 'Failed to fetch client'
+      return NextResponse.json(
+        { error: errorText },
+        { status: error.response.status || 500 }
+      )
+    }
+    
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -42,25 +47,30 @@ export async function PUT(
     const { id: clientId } = await params
     const clientData = await request.json()
     
-    const response = await fetch(`${config.hydraAdminUrl}/admin/clients/${clientId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(clientData),
-    })
-
-    const data = await response.json()
+    // Import generated API functions from Orval
+    const { getOryHydraAPI } = await import('@/generated/hydra-api')
+    const api = getOryHydraAPI()
     
-    if (!response.ok) {
+    const response = await api.setOAuth2Client(clientId, clientData)
+
+    if (!response.data) {
       return NextResponse.json(
-        { error: data.error || 'Failed to update client', ...data },
-        { status: response.status }
+        { error: 'Failed to update client' },
+        { status: 500 }
       )
     }
 
-    return NextResponse.json(data)
-  } catch (error) {
+    return NextResponse.json(response.data)
+  } catch (error: any) {
+    // Handle axios errors
+    if (error.response) {
+      const errorData = error.response.data
+      return NextResponse.json(
+        { error: errorData?.error || 'Failed to update client', ...errorData },
+        { status: error.response.status || 500 }
+      )
+    }
+    
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -76,20 +86,23 @@ export async function DELETE(
   try {
     const { id: clientId } = await params
     
-    const response = await fetch(`${config.hydraAdminUrl}/admin/clients/${clientId}`, {
-      method: 'DELETE',
-    })
-
-    if (!response.ok) {
-      const error = await response.text()
-      return NextResponse.json(
-        { error: error || 'Failed to delete client' },
-        { status: response.status }
-      )
-    }
+    // Import generated API functions from Orval
+    const { getOryHydraAPI } = await import('@/generated/hydra-api')
+    const api = getOryHydraAPI()
+    
+    await api.deleteOAuth2Client(clientId)
 
     return NextResponse.json({ success: true, message: 'Client deleted successfully' })
-  } catch (error) {
+  } catch (error: any) {
+    // Handle axios errors
+    if (error.response) {
+      const errorText = error.response.data?.error || error.response.data || 'Failed to delete client'
+      return NextResponse.json(
+        { error: errorText },
+        { status: error.response.status || 500 }
+      )
+    }
+    
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

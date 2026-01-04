@@ -19,7 +19,8 @@
     "test:verify": "bun run scripts/verify-tests.ts",
     "test:auth-code": "bun run demos/auth-code-flow.ts",
     "test:device": "bun run demos/device-flow.ts",
-    "test:client-credentials": "bun run demos/client-credentials-flow.ts"
+    "test:client-credentials": "bun run demos/client-credentials-flow.ts",
+    "generate:api": "orval"
   },
   "keywords": ["oauth2", "ory", "hydra", "verification"],
   "author": "",
@@ -62,6 +63,8 @@
     "tailwindcss": "^4.1.18",
     "typescript": "^5.3.3",
     "vite-tsconfig-paths": "^4.2.1",
-    "vitest": "^1.0.4"
+    "vitest": "^1.0.4",
+    "orval": "^7.4.0",
+    "axios": "^1.7.0"
   }
 }

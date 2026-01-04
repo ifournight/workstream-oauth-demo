@@ -1,5 +1,4 @@
 import { getIronSession, type IronSession } from 'iron-session'
-import { cookies } from 'next/headers'
 import type { ReadonlyRequestCookies } from 'next/dist/server/web/spec-extension/adapters/request-cookies'
 
 /**
@@ -34,7 +33,7 @@ export const sessionOptions = {
 export async function getSession(
   cookieStore?: ReadonlyRequestCookies
 ): Promise<IronSession<SessionData>> {
-  const cookieStoreToUse = cookieStore || (await cookies())
+  const cookieStoreToUse = cookieStore || (await import('next/headers').then(m => m.cookies()))
   return await getIronSession<SessionData>(cookieStoreToUse, sessionOptions)
 }
 
@@ -81,7 +80,7 @@ export async function createSession(
 export async function clearSession(
   cookieStore?: ReadonlyRequestCookies
 ): Promise<void> {
-  const cookieStoreToUse = cookieStore || (await cookies())
+  const cookieStoreToUse = cookieStore || (await import('next/headers').then(m => m.cookies()))
   const session = await getIronSession<SessionData>(cookieStoreToUse, sessionOptions)
   session.destroy()
 }
@@ -138,7 +137,7 @@ export async function getIdentityIdFromSession(
     // Clear the invalid cookie
     console.warn('Failed to decrypt session in getIdentityIdFromSession, clearing invalid cookie:', error)
     try {
-      const cookieStoreToUse = cookieStore || (await cookies())
+      const cookieStoreToUse = cookieStore || (await import('next/headers').then(m => m.cookies()))
       const invalidSession = await getIronSession<SessionData>(cookieStoreToUse, sessionOptions)
       invalidSession.destroy()
     } catch (clearError) {
