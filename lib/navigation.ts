@@ -5,7 +5,6 @@ import {
     Users01, 
     Key01, 
     Settings01,
-    FileCode02,
     Server01,
     User01
 } from "@untitledui/icons";
@@ -20,30 +19,20 @@ export const navigationItems: NavigationSection[] = [
         label: "Clients",
         items: [
             {
+                label: "My OAuth Clients",
+                href: "/identity-clients",
+                icon: Key01,
+            },
+            {
                 label: "Global Clients",
                 href: "/clients",
                 icon: Users01,
-            },
-            {
-                label: "Identity-Specific Clients",
-                href: "/identity-clients",
-                icon: Key01,
             },
         ],
     },
     {
         label: "Flows",
         items: [
-            {
-                label: "Authorization Code",
-                href: "/auth",
-                icon: FileCode02,
-            },
-            {
-                label: "Device Authorization",
-                href: "/device-demo",
-                icon: FileCode02,
-            },
             {
                 label: "OAuth Apps Token Flow",
                 href: "/oauth-apps-token",

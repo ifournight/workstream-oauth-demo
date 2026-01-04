@@ -29,7 +29,7 @@ export default function CreateIdentityClientPage() {
   useEffect(() => {
     setBreadcrumbs([
       { label: 'Clients', href: '/clients' },
-      { label: 'Identity-Specific Clients', href: '/identity-clients' },
+      { label: 'My OAuth Clients', href: '/identity-clients' },
       { label: 'Create Client' },
     ])
     return () => setBreadcrumbs([])

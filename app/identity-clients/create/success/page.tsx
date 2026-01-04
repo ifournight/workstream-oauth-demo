@@ -20,7 +20,7 @@ export default function CreateIdentityClientSuccessPage() {
   useEffect(() => {
     setBreadcrumbs([
       { label: 'Clients', href: '/clients' },
-      { label: 'Identity-Specific Clients', href: '/identity-clients' },
+      { label: 'My OAuth Clients', href: '/identity-clients' },
       { label: 'Success' },
     ])
     return () => setBreadcrumbs([])
@@ -189,7 +189,7 @@ export default function CreateIdentityClientSuccessPage() {
             color="primary" 
             onClick={() => router.push('/identity-clients')}
           >
-            Back to Identity Clients
+            Back to My OAuth Clients
           </Button>
         </div>
       </div>

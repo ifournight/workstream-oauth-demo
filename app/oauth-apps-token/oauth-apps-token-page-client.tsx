@@ -54,7 +54,7 @@ export function OAuthAppsTokenPageClient({ dehydratedState, identityId: serverId
 function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string | null }) {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const { setBreadcrumbs } = useBreadcrumbs()
-  const [clientType, setClientType] = useState<'global' | 'identity'>('global')
+  const [clientType, setClientType] = useState<'global' | 'identity'>('identity')
   const [selectedClientId, setSelectedClientId] = useState<string>('')
   const [clientSecret, setClientSecret] = useState<string>('')
   const [tokenResponse, setTokenResponse] = useState<TokenResponse | null>(null)
@@ -255,8 +255,8 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
             size="md" 
             fullWidth
             items={[
+              { id: 'identity', label: 'My OAuth Clients' },
               { id: 'global', label: 'Global Clients' },
-              { id: 'identity', label: 'Identity Clients' },
             ]}
           >
             {(item) => <Tabs.Item id={item.id}>{item.label}</Tabs.Item>}
@@ -353,14 +353,14 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
                   <EmptyState.Content>
                     <EmptyState.Title>Authentication Required</EmptyState.Title>
                     <EmptyState.Description>
-                      Please log in to view and use your identity-specific clients.
+                      Please log in to view and use your OAuth clients.
                     </EmptyState.Description>
                   </EmptyState.Content>
                 </EmptyState>
               </div>
             ) : loadingIdentity ? (
               <div className="py-8">
-                <LoadingIndicator size="md" label="Loading identity clients..." />
+                <LoadingIndicator size="md" label="Loading your OAuth clients..." />
               </div>
             ) : identityClients.length === 0 ? (
               <div className="py-8">
@@ -371,7 +371,7 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
                   <EmptyState.Content>
                     <EmptyState.Title>No clients found</EmptyState.Title>
                     <EmptyState.Description>
-                      No clients found for your identity. Please create a client first.
+                      No OAuth clients found. Please create a client first.
                     </EmptyState.Description>
                   </EmptyState.Content>
                 </EmptyState>

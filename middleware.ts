@@ -19,8 +19,6 @@ export async function middleware(request: NextRequest) {
     '/api/auth/login', 
     '/api/auth/callback',
     '/api/clients', // Allow client management API
-    '/callback', // OAuth callback page (for auth code flow demo)
-    '/auth', // Auth code flow page
   ]
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
   

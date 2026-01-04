@@ -18,7 +18,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: 'Workstream OAuth apps',
-  description: 'OAuth 2.0 verification server for Authorization Code, Device Authorization, and Client Credentials flows',
+  description: 'OAuth 2.0 verification server for Client Credentials flows',
 }
 
 export const viewport: Viewport = {

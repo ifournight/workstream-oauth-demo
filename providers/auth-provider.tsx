@@ -41,9 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (typeof window !== 'undefined') {
           const currentPath = window.location.pathname
           const isLoginPage = currentPath === '/login'
-          const isPublicRoute = currentPath.startsWith('/clients') || 
-                               currentPath.startsWith('/callback') ||
-                               currentPath.startsWith('/auth')
+          const isPublicRoute = currentPath.startsWith('/clients')
           
           if (!isLoginPage && !isPublicRoute) {
             const returnUrl = currentPath !== '/' ? currentPath : '/'

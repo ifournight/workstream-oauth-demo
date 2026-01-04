@@ -58,7 +58,7 @@ function IdentityClientsContent({ identityId }: { identityId: string | null }) {
   useEffect(() => {
     setBreadcrumbs([
       { label: 'Clients', href: '/clients' },
-      { label: 'Identity-Specific Clients' },
+      { label: 'My OAuth Clients' },
     ])
     return () => setBreadcrumbs([])
   }, [setBreadcrumbs])
@@ -162,8 +162,8 @@ function IdentityClientsContent({ identityId }: { identityId: string | null }) {
   return (
     <div className="max-w-7xl">
       <PageHeader
-        title="Identity-Specific Clients"
-        description="Manage OAuth clients for your identity. Clients are automatically loaded based on your current session."
+        title="My OAuth Clients"
+        description="Manage your OAuth clients. Clients are automatically loaded based on your current session."
         singleRow
         actions={
           <Button color="primary" onClick={handleCreate}>
@@ -190,7 +190,7 @@ function IdentityClientsContent({ identityId }: { identityId: string | null }) {
                 </EmptyState.Header>
                 <EmptyState.Content>
                   <EmptyState.Title>Authentication Required</EmptyState.Title>
-                  <EmptyState.Description>Please log in to view and manage your identity-specific clients.</EmptyState.Description>
+                  <EmptyState.Description>Please log in to view and manage your OAuth clients.</EmptyState.Description>
                 </EmptyState.Content>
               </EmptyState>
             </div>
@@ -214,7 +214,7 @@ function IdentityClientsContent({ identityId }: { identityId: string | null }) {
                 </EmptyState.Header>
                 <EmptyState.Content>
                   <EmptyState.Title>No clients found</EmptyState.Title>
-                  <EmptyState.Description>No clients found for this identity. Create your first client!</EmptyState.Description>
+                  <EmptyState.Description>No OAuth clients found. Create your first client!</EmptyState.Description>
                 </EmptyState.Content>
               </EmptyState>
             </div>
@@ -223,16 +223,16 @@ function IdentityClientsContent({ identityId }: { identityId: string | null }) {
       ) : (
         <TableCard.Root>
           <TableCard.Header
-            title="Identity Clients"
+            title="My OAuth Clients"
             badge={`${clients.length} ${clients.length === 1 ? 'client' : 'clients'}`}
           />
-          <Table aria-label="Identity clients table">
+          <Table aria-label="My OAuth clients table">
             <Table.Header columns={columns}>
               {(column) => <Table.Head>{column.name}</Table.Head>}
             </Table.Header>
             <Table.Body 
               items={clients}
-              getKey={(client: Client) => client.id || client.client_id || 'unknown'}
+              {...({ getKey: (client: Client) => client.id || client.client_id || 'unknown' } as any)}
             >
               {(client: Client) => {
                 const clientId = client.client_id || client.id || 'N/A'
