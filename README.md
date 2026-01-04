@@ -1,6 +1,27 @@
-# Workstream OAuth Apps - Verification Server
+# Workstream OAuth Apps - Demo Application
 
-This project provides a Next.js application with React UI to verify OAuth 2.0 flows (Authorization Code, Device Authorization, and Client Credentials) with Ory Hydra and UMS integration.
+This project is a demo application for Workstream OAuth apps management. It demonstrates how to integrate with Workstream's OAuth infrastructure to manage OAuth clients and obtain access tokens.
+
+## Overview
+
+This demo application showcases three key capabilities:
+
+1. **Workstream Login Simulation**
+   - Uses Hydra public endpoints (accessible via Workstream OpenVPN) with known client ID/secret
+   - Simulates Workstream login flow to obtain identity ID
+   - Demonstrates PKCE-based authentication flow
+
+2. **OAuth Client Management**
+   - Uses Hydra Admin API and UMS OAuth clients API (accessible via Workstream OpenVPN)
+   - Manages two types of OAuth clients:
+     - **Global Clients**: Managed directly in Hydra, accessible to all users
+     - **My OAuth Clients**: Managed via UMS API, tied to specific user identities
+   - Enables production-ready client ID/secret distribution for real users
+
+3. **Token Exchange Demo**
+   - Uses UMS OAuth App Token endpoint
+   - Demonstrates how users can exchange their OAuth client ID/secret for access tokens
+   - **Important**: This endpoint must be publicly exposed to users in production environments
 
 ## Quick Start
 
@@ -77,15 +98,11 @@ This project provides a Next.js application with React UI to verify OAuth 2.0 fl
 │   ├── page.tsx                     # Home page
 │   ├── clients/                     # Global clients management
 │   │   └── page.tsx
-│   ├── identity-clients/            # Identity-specific clients management
+│   ├── identity-clients/            # My OAuth Clients management
 │   │   └── page.tsx
-│   ├── auth/                        # Authorization Code flow
+│   ├── oauth-apps-token/            # OAuth Apps Token Flow
 │   │   └── page.tsx
-│   ├── callback/                    # OAuth callback
-│   │   └── page.tsx
-│   ├── device-demo/                 # Device flow demo
-│   │   └── page.tsx
-│   ├── client-credentials-demo/     # Client credentials demo
+│   ├── login/                       # Login page
 │   │   └── page.tsx
 │   ├── components/                  # Application-specific components
 │   │   ├── page-header.tsx         # Page header with breadcrumbs
@@ -142,18 +159,26 @@ This project provides a Next.js application with React UI to verify OAuth 2.0 fl
 
 ## Features
 
-- ✅ **Authorization Code Flow** - Interactive web UI and command-line demo
-- ✅ **Device Authorization Flow** - For devices with limited input capabilities (note: requires Ory configuration)
-- ✅ **Client Credentials Flow** - Machine-to-machine authentication using UMS endpoint
+- ✅ **Workstream Login** - PKCE-based login flow simulating Workstream authentication
 - ✅ **OAuth Client Management** - Two modes:
-  - **Global Clients (Hydra)** - Manage all clients directly in Hydra
-  - **Identity-Specific Clients (UMS)** - Manage clients for a specific identity
+  - **Global Clients (Hydra)** - Manage all clients directly in Hydra Admin API
+  - **My OAuth Clients (UMS)** - Manage clients for specific user identities via UMS API
+- ✅ **Client Credentials Flow** - Machine-to-machine token exchange using UMS OAuth App Token endpoint
 - ✅ **Token Inspection** - JWT token decoding to view scopes, audience, and claims
 - ✅ **API Testing** - Built-in API testing with access tokens
+- ✅ **Session Management** - Secure session management with iron-session
 - ✅ **Runtime Detection** - Auto-detects Bun or Node.js and uses appropriate server
 - ✅ **Docker Support** - Run in containerized environment
-- ✅ **App Login & Session Management** - PKCE-based login flow with session management
-- ✅ **Login Flow** - Uses PKCE, password input handled by Hydra UI (see [CUSTOM_LOGIN_UI.md](./CUSTOM_LOGIN_UI.md) for custom UI implementation)
+
+## Network Requirements
+
+**Important**: This application requires access to Workstream's private network via OpenVPN:
+
+- **Hydra Public URL**: Used for user authentication flows
+- **Hydra Admin URL**: Used for managing global OAuth clients
+- **UMS Base URL**: Used for managing user-specific OAuth clients and token exchange
+
+Ensure you are connected to Workstream OpenVPN before running the application.
 
 ## Session Management
 
@@ -166,64 +191,6 @@ The application uses `iron-session` for session management. You **must** configu
   ```
 - **Security**: Never commit the actual secret to version control
 - **Fallback**: If not configured, the app uses a default secret (not recommended for production)
-
-See [CALLBACK_URLS.md](./CALLBACK_URLS.md) for callback URL configuration requirements.
-
-## OAuth Callback Routes
-
-This application uses two different callback routes for different purposes:
-
-### `/api/auth/callback` - App Login Callback
-
-**Purpose**: Handles OAuth callback for **application login** (establishing user session)
-
-**Flow**: `/api/auth/login` → Hydra Authorization → `/api/auth/callback`
-
-**Behavior**:
-- Exchanges authorization code for access token
-- **Creates application session** (stores token in secure cookie)
-- Extracts identity ID from token's `sub` claim
-- **Redirects** to `returnUrl` (default: `/`) with success parameters
-- Used for authenticating users to access the application
-
-**When to use**: When you need to log in to the application and establish a session for accessing protected routes.
-
-### `/callback` - Demo OAuth Flow Callback
-
-**Purpose**: Handles OAuth callback for **demonstrating OAuth flows** (no session creation)
-
-**Flow**: `/api/auth/init` → Hydra Authorization → `/callback`
-
-**Behavior**:
-- Exchanges authorization code for access token
-- **Does NOT create application session**
-- Displays token information (access token, refresh token, etc.)
-- Shows API testing interface
-- **Does NOT redirect** - stays on `/callback` page
-- Used for testing and demonstrating OAuth flows
-
-**When to use**: When you want to test OAuth flows, inspect tokens, or demonstrate OAuth functionality without affecting the application's login state.
-
-### Callback URL Configuration
-
-**Important**: Both callback URLs must be configured in your Hydra OAuth client's `redirect_uris`:
-
-- **Login flow**: `${NEXT_PUBLIC_BASE_URL}/api/auth/callback`
-- **Auth code flow**: `${NEXT_PUBLIC_BASE_URL}/callback`
-
-If the same client is used for both flows, include both URLs in the `redirect_uris` array.
-
-See [CALLBACK_URLS.md](./CALLBACK_URLS.md) for detailed configuration instructions.
-
-### Key Differences
-
-| Feature | `/api/auth/callback` | `/callback` |
-|---------|----------------------|-------------|
-| **Session Creation** | ✅ Creates session | ❌ No session |
-| **Redirect Behavior** | ✅ Redirects after success | ❌ Stays on page |
-| **Use Case** | App login | OAuth flow demo |
-| **Identity ID** | Extracted and stored in session | Displayed but not stored |
-| **Access Control** | Enables access to protected routes | No access control impact |
 
 ## Environment Variables
 
@@ -244,48 +211,27 @@ See [CALLBACK_URLS.md](./CALLBACK_URLS.md) for detailed configuration instructio
 
 ### Web UI
 
-1. Start the server: `bun run dev` or `npm run start:node`
-2. Visit `http://localhost:3000`
-3. Choose a flow:
-   - **Authorization Code Flow** - Interactive user authentication
-   - **Device Authorization Flow** - For devices with limited input
-   - **Client Credentials Flow** - Machine-to-machine (no user interaction)
-   - **Client Management** - Create, edit, and delete OAuth clients
-
-### Command-Line Demos
-
-**Authorization Code Flow:**
-```bash
-export CLIENT_ID="your-client-id"
-export CLIENT_SECRET="your-client-secret"
-bun run demos/auth-code-flow.ts
-```
-
-**Device Authorization Flow:**
-```bash
-export CLIENT_ID="your-client-id"
-export CLIENT_SECRET="your-client-secret"
-bun run demos/device-flow.ts
-```
-
-**Client Credentials Flow:**
-```bash
-export CLIENT_ID="your-client-id"
-export CLIENT_SECRET="your-client-secret"
-bun run demos/client-credentials-flow.ts
-```
+1. **Connect to Workstream OpenVPN** (required for accessing private network endpoints)
+2. Start the server: `bun run dev` or `npm run start:node`
+3. Visit `http://localhost:3000`
+4. Available features:
+   - **Login** - Simulate Workstream login to obtain identity ID
+   - **My OAuth Clients** - Manage OAuth clients for your identity (default page)
+   - **Global Clients** - Manage all OAuth clients in Hydra
+   - **OAuth Apps Token Flow** - Exchange client ID/secret for access tokens
 
 ### Client Management
 
-Use the web UI at `/clients` or the scripts:
+**Via Web UI:**
+- Navigate to `/identity-clients` to manage your OAuth clients
+- Navigate to `/clients` to manage global OAuth clients
 
-**Create a client:**
+**Via Scripts:**
 ```bash
+# Create a global client
 bun run scripts/create-client.ts
-```
 
-**Update a client:**
-```bash
+# Update a client
 bun run scripts/update-client.ts
 ```
 
@@ -326,11 +272,26 @@ docker-compose down
 docker-compose up --build --force-recreate
 ```
 
+## Testing
+
+### Running Tests
+
+```bash
+# Run all tests
+bun test
+
+# Run specific test suite
+bun test __tests__/api/auth
+```
+
 ## Troubleshooting
 
 ### VPN Connection Required
 
-If you see certificate/SSL errors, ensure you're connected to the company VPN when accessing Hydra admin endpoints.
+If you see certificate/SSL errors, ensure you're connected to Workstream OpenVPN when accessing:
+- Hydra public endpoints
+- Hydra admin endpoints
+- UMS API endpoints
 
 ### Docker Issues
 
