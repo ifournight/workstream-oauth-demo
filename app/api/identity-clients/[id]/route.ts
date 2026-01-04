@@ -44,15 +44,17 @@ export async function GET(
       }
 
       // Transform UMS response to match Hydra client format for frontend compatibility
+      // Note: UMS API response doesn't include grant_types, response_types, etc.
+      // These are provided as defaults for frontend compatibility
       const transformedClient = {
         client_id: response.data.client_id || response.data.id,
         client_name: response.data.name,
-        grant_types: response.data.grant_types || [],
-        response_types: response.data.response_types || [],
+        grant_types: (response.data as any).grant_types || ['client_credentials'],
+        response_types: (response.data as any).response_types || ['code'],
         scope: Array.isArray(response.data.scopes) ? response.data.scopes.join(' ') : response.data.scopes || '',
-        redirect_uris: response.data.redirect_uris || [],
-        token_endpoint_auth_method: response.data.token_endpoint_auth_method || 'client_secret_post',
-        owner_identity_id: response.data.owner_identity_id,
+        redirect_uris: (response.data as any).redirect_uris || [],
+        token_endpoint_auth_method: (response.data as any).token_endpoint_auth_method || 'client_secret_post',
+        owner_identity_id: (response.data as any).owner_identity_id,
         ...response.data
       }
       return NextResponse.json(transformedClient)
