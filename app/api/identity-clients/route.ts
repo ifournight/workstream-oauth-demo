@@ -47,6 +47,7 @@ export async function GET(request: NextRequest) {
     })
     
     console.log('[Get Identity Clients] Requesting:', apiUrl)
+    console.log('[Get Identity Clients] Identity ID:', identityId)
     
     let response: Response
     try {
@@ -78,16 +79,73 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    console.log('[Get Identity Clients] Response status:', response.status, response.statusText)
+    
     if (!response.ok) {
       const error = await response.text()
+      console.error('[Get Identity Clients] Error response:', error)
       return NextResponse.json(
         { error: error || 'Failed to fetch clients' },
         { status: response.status }
       )
     }
 
-    const clients = await response.json()
-    const clientsArray = Array.isArray(clients) ? clients : []
+    const responseText = await response.text()
+    console.log('[Get Identity Clients] Raw response:', responseText)
+    console.log('[Get Identity Clients] Response length:', responseText.length)
+    
+    let clients: any
+    try {
+      clients = responseText ? JSON.parse(responseText) : []
+    } catch (parseError) {
+      console.error('[Get Identity Clients] JSON parse error:', parseError)
+      console.error('[Get Identity Clients] Response text that failed to parse:', responseText)
+      return NextResponse.json(
+        { error: 'Failed to parse response from UMS API', details: responseText },
+        { status: 500 }
+      )
+    }
+    
+    console.log('[Get Identity Clients] Parsed clients:', JSON.stringify(clients, null, 2))
+    console.log('[Get Identity Clients] Type of clients:', typeof clients)
+    console.log('[Get Identity Clients] Is array?', Array.isArray(clients))
+    console.log('[Get Identity Clients] Has apps property?', clients && typeof clients === 'object' && clients !== null && 'apps' in clients)
+    
+    // UMS API returns { apps: [...] } format, extract the apps array
+    let clientsArray: any[] = []
+    
+    // Check if it's already an array
+    if (Array.isArray(clients)) {
+      clientsArray = clients
+      console.log('[Get Identity Clients] Using direct array, length:', clientsArray.length)
+    } 
+    // Check if it's an object with 'apps' property
+    else if (clients && typeof clients === 'object' && clients !== null && 'apps' in clients) {
+      console.log('[Get Identity Clients] Found apps property')
+      console.log('[Get Identity Clients] clients.apps type:', typeof clients.apps)
+      console.log('[Get Identity Clients] clients.apps isArray:', Array.isArray(clients.apps))
+      console.log('[Get Identity Clients] clients.apps value:', JSON.stringify(clients.apps, null, 2))
+      
+      if (Array.isArray(clients.apps)) {
+        clientsArray = clients.apps
+        console.log('[Get Identity Clients] Extracted apps array, length:', clientsArray.length)
+      } else {
+        console.log('[Get Identity Clients] apps is not an array!')
+        clientsArray = []
+      }
+    } 
+    // Check if it's an object with 'data' property
+    else if (clients && typeof clients === 'object' && clients !== null && 'data' in clients) {
+      clientsArray = Array.isArray(clients.data) ? clients.data : []
+      console.log('[Get Identity Clients] Using data property, length:', clientsArray.length)
+    } 
+    else {
+      console.log('[Get Identity Clients] No matching format found, clients:', clients)
+      clientsArray = []
+    }
+    
+    console.log('[Get Identity Clients] Final clients array length:', clientsArray.length)
+    console.log('[Get Identity Clients] Final clients array:', JSON.stringify(clientsArray, null, 2))
     
     // Transform UMS response format to match Hydra format for frontend compatibility
     const transformedClients = clientsArray.map((client: any) => ({
