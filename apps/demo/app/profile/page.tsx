@@ -9,7 +9,7 @@ import { CodeSnippet } from '@/app/components/ui/code-snippet'
 import { Input } from '@/components/base/input/input'
 import { Button } from '@/components/base/buttons/button'
 import { LoadingIndicator } from '@/components/application/loading-indicator/loading-indicator'
-import { Copy01, Check } from '@untitledui/icons'
+import { Copy01, Check, LogOut01 } from '@untitledui/icons'
 import { useClipboard } from '@/hooks/use-clipboard'
 import { toast } from 'sonner'
 
@@ -29,7 +29,7 @@ interface SessionInfo {
 }
 
 function ProfilePageContent() {
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth()
+  const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth()
   const searchParams = useSearchParams()
   const router = useRouter()
   const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null)
@@ -262,9 +262,19 @@ function ProfilePageContent() {
             <h2 className="text-lg font-semibold text-secondary">Session Status</h2>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-success-solid" />
-              <span className="text-sm text-secondary">Authenticated</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-success-solid" />
+                <span className="text-sm text-secondary">Authenticated</span>
+              </div>
+              <Button
+                color="destructive"
+                size="sm"
+                onClick={logout}
+                iconLeading={LogOut01}
+              >
+                Sign Out
+              </Button>
             </div>
           </CardContent>
         </Card>

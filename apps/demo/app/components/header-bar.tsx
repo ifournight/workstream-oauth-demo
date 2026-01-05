@@ -5,12 +5,14 @@ import Link from "next/link";
 import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import { ThemeToggle } from "@/app/components/theme-toggle";
 import { Avatar } from "@/components/base/avatar/avatar";
+import { Button } from "@/components/base/buttons/button";
+import { LogOut01 } from "@untitledui/icons";
 import { useAuth } from "@/hooks/use-auth";
 import { useBreadcrumbs } from "@/lib/breadcrumbs";
 
 export function HeaderBar() {
     const { breadcrumbs } = useBreadcrumbs();
-    const { user, isAuthenticated } = useAuth();
+    const { user, isAuthenticated, logout } = useAuth();
 
     // Get user initials for avatar
     const getUserInitials = () => {
@@ -38,22 +40,33 @@ export function HeaderBar() {
                 )}
             </div>
 
-            {/* Right: Theme Toggle + Profile */}
+            {/* Right: Theme Toggle + Profile + Sign Out */}
             <div className="flex items-center gap-3">
                 <ThemeToggle iconOnly />
                 
                 {isAuthenticated && user && (
-                    <Link 
-                        href="/profile"
-                        className="flex items-center justify-center h-10 w-10 rounded-full hover:bg-secondary transition-colors"
-                        aria-label="Profile"
-                    >
-                        <Avatar
+                    <>
+                        <Link 
+                            href="/profile"
+                            className="flex items-center justify-center h-10 w-10 rounded-full hover:bg-secondary transition-colors"
+                            aria-label="Profile"
+                        >
+                            <Avatar
+                                size="sm"
+                                initials={getUserInitials()}
+                                contrastBorder={false}
+                            />
+                        </Link>
+                        <Button
+                            color="tertiary"
                             size="sm"
-                            initials={getUserInitials()}
-                            contrastBorder={false}
-                        />
-                    </Link>
+                            onClick={logout}
+                            iconLeading={LogOut01}
+                            aria-label="Sign out"
+                        >
+                            Sign Out
+                        </Button>
+                    </>
                 )}
             </div>
         </header>
