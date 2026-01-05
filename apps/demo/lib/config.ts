@@ -21,6 +21,9 @@ export interface EnvConfig {
   // API Testing Configuration
   testApiUrl: string;
   companyId: string;
+  
+  // Access Control Configuration
+  globalClientsAdminIdentityIds: string[];
 }
 
 /**
@@ -45,6 +48,12 @@ export function loadConfig(): EnvConfig {
     // API Testing Configuration
     testApiUrl: process.env.TEST_API_URL || 'https://ws-public-api.dev.workstream.us/time-shift/v2/managers/time_entries?startDate=2025-12-22&endDate=2025-12-29&locationIds%5B0%5D=6fced117-6a57-49cf-a131-12862a962272&statuses%5B0%5D=ended&statuses%5B1%5D=approved&statuses%5B2%5D=started&sortField=clockIn&sortOrder=desc&limit=50',
     companyId: process.env.COMPANY_ID || 'eef568a4-86e4-4b51-bfeb-dc4daa831f6e',
+    
+    // Access Control Configuration
+    // Comma-separated list of identity IDs that can manage global clients
+    globalClientsAdminIdentityIds: process.env.GLOBAL_CLIENTS_ADMIN_IDENTITY_IDS
+      ? process.env.GLOBAL_CLIENTS_ADMIN_IDENTITY_IDS.split(',').map(id => id.trim()).filter(Boolean)
+      : [],
   };
 
   return config;

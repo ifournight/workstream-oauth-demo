@@ -2,10 +2,23 @@ import { NextRequest, NextResponse } from 'next/server'
 // Import generated API functions from Orval
 // Note: Run `bun run generate:api` first to generate these functions
 import { getOryHydraAPI } from '@/generated/hydra-api'
+import { checkGlobalClientsAdminAccess } from '@/lib/access-control'
+import { cookies } from 'next/headers'
 
 // GET /api/clients - List all clients
 export async function GET(request: NextRequest) {
   try {
+    // Check access control
+    const cookieStore = await cookies()
+    const hasAccess = await checkGlobalClientsAdminAccess(cookieStore)
+    
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'Forbidden', error_description: 'You do not have permission to access global clients' },
+        { status: 403 }
+      )
+    }
+    
     const api = getOryHydraAPI()
     const response = await api.listOAuth2Clients()
     
@@ -49,6 +62,17 @@ export async function GET(request: NextRequest) {
 // POST /api/clients - Create a new client
 export async function POST(request: NextRequest) {
   try {
+    // Check access control
+    const cookieStore = await cookies()
+    const hasAccess = await checkGlobalClientsAdminAccess(cookieStore)
+    
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'Forbidden', error_description: 'You do not have permission to create global clients' },
+        { status: 403 }
+      )
+    }
+    
     const clientData = await request.json()
     
     // Import generated API functions from Orval

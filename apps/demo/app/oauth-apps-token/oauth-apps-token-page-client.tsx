@@ -54,12 +54,44 @@ export function OAuthAppsTokenPageClient({ dehydratedState, identityId: serverId
 function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string | null }) {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const { setBreadcrumbs } = useBreadcrumbs()
-  const [clientType, setClientType] = useState<'global' | 'identity'>('identity')
+  const [canManageGlobalClients, setCanManageGlobalClients] = useState(false)
+  
+  // Check access control via API
+  useEffect(() => {
+    if (isAuthenticated && (user?.identityId || serverIdentityId)) {
+      fetch('/api/auth/access-control')
+        .then(res => res.json())
+        .then(data => {
+          setCanManageGlobalClients(data.canManageGlobalClients || false)
+        })
+        .catch(error => {
+          console.error('Error checking access control:', error)
+          setCanManageGlobalClients(false)
+        })
+    } else {
+      setCanManageGlobalClients(false)
+    }
+  }, [isAuthenticated, user?.identityId, serverIdentityId])
+  
+  // Default to 'identity' if user doesn't have access to global clients
+  const [clientType, setClientType] = useState<'global' | 'identity'>(
+    canManageGlobalClients ? 'identity' : 'identity'
+  )
   const [selectedClientId, setSelectedClientId] = useState<string>('')
   const [clientSecret, setClientSecret] = useState<string>('')
   const [tokenResponse, setTokenResponse] = useState<TokenResponse | null>(null)
   const [apiResult, setApiResult] = useState<ApiTestResult | null>(null)
   const [isTestingApi, setIsTestingApi] = useState(false)
+  
+  // Reset to 'identity' if user loses access to global clients
+  useEffect(() => {
+    if (!canManageGlobalClients && clientType === 'global') {
+      setClientType('identity')
+      setSelectedClientId('')
+      setClientSecret('')
+      setTokenResponse(null)
+    }
+  }, [canManageGlobalClients, clientType])
 
   // Set breadcrumbs
   useEffect(() => {
@@ -74,6 +106,7 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
   const identityId = serverIdentityId || user?.identityId
 
   // Fetch global clients - this will use the prefetched data from SSR
+  // Only fetch if user has access
   const { data: globalClients = [], isLoading: loadingGlobal } = useQuery({
     queryKey: ['clients'],
     queryFn: async () => {
@@ -84,6 +117,7 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
       const data = await response.json()
       return Array.isArray(data) ? data : []
     },
+    enabled: canManageGlobalClients,
   })
 
   // Fetch identity clients for current user - this will use the prefetched data from SSR
@@ -256,13 +290,14 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
             fullWidth
             items={[
               { id: 'identity', label: 'My OAuth Clients' },
-              { id: 'global', label: 'Global Clients' },
+              ...(canManageGlobalClients ? [{ id: 'global', label: 'Global Clients' }] : []),
             ]}
           >
             {(item) => <Tabs.Item id={item.id}>{item.label}</Tabs.Item>}
           </Tabs.List>
 
-          <Tabs.Panel id="global" className="mt-6">
+          {canManageGlobalClients && (
+            <Tabs.Panel id="global" className="mt-6">
             {loadingGlobal ? (
               <div className="py-8">
                 <LoadingIndicator size="md" label="Loading global clients..." />
@@ -337,7 +372,8 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
                 </CardContent>
               </Card>
             )}
-          </Tabs.Panel>
+            </Tabs.Panel>
+          )}
 
           <Tabs.Panel id="identity" className="mt-6">
             {authLoading ? (

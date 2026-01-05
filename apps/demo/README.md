@@ -14,9 +14,10 @@ This demo application showcases three key capabilities:
 2. **OAuth Client Management**
    - Uses Hydra Admin API and UMS OAuth clients API (accessible via Workstream OpenVPN)
    - Manages two types of OAuth clients:
-     - **Global Clients**: Managed directly in Hydra, accessible to all users
+     - **Global Clients**: Managed directly in Hydra, accessible only to users in the whitelist (configured via `GLOBAL_CLIENTS_ADMIN_IDENTITY_IDS`)
      - **My OAuth Clients**: Managed via UMS API, tied to specific user identities
    - Enables production-ready client ID/secret distribution for real users
+   - **Access Control**: Global clients management is restricted to identity IDs listed in the `GLOBAL_CLIENTS_ADMIN_IDENTITY_IDS` environment variable
 
 3. **Token Exchange Demo**
    - Uses UMS OAuth App Token endpoint
@@ -37,6 +38,9 @@ This demo application showcases three key capabilities:
    CLIENT_SECRET=your-client-secret
    NEXT_PUBLIC_BASE_URL=http://localhost:3000
    SESSION_SECRET=your-session-secret-at-least-32-characters-long
+   # Comma-separated list of identity IDs that can manage global clients
+   # Example: GLOBAL_CLIENTS_ADMIN_IDENTITY_IDS=identity-id-1,identity-id-2,identity-id-3
+   GLOBAL_CLIENTS_ADMIN_IDENTITY_IDS=
    ```
    
    **Important**: Generate a secure `SESSION_SECRET` (at least 32 characters):
@@ -72,6 +76,9 @@ This demo application showcases three key capabilities:
    CLIENT_SECRET=your-client-secret
    NEXT_PUBLIC_BASE_URL=http://localhost:3000
    SESSION_SECRET=your-session-secret-at-least-32-characters-long
+   # Comma-separated list of identity IDs that can manage global clients
+   # Example: GLOBAL_CLIENTS_ADMIN_IDENTITY_IDS=identity-id-1,identity-id-2,identity-id-3
+   GLOBAL_CLIENTS_ADMIN_IDENTITY_IDS=
    ```
    
    **Important**: Generate a secure `SESSION_SECRET` (at least 32 characters):
@@ -210,6 +217,7 @@ The application uses `iron-session` for session management. You **must** configu
 | `NEXT_PUBLIC_BASE_URL` | Base URL for the application (used for callback URLs) | `http://localhost:3000` |
 | `TEST_API_URL` | API endpoint for testing tokens | (default test endpoint) |
 | `COMPANY_ID` | Company ID for API calls | `eef568a4-86e4-4b51-bfeb-dc4daa831f6e` |
+| `GLOBAL_CLIENTS_ADMIN_IDENTITY_IDS` | Comma-separated list of identity IDs that can manage global clients | (optional, empty by default - no access to global clients management) |
 
 ## Usage
 
@@ -222,7 +230,7 @@ The application uses `iron-session` for session management. You **must** configu
    - **Login** - Simulate Workstream login to obtain identity ID
    - **My OAuth Clients** - Manage OAuth clients for your identity (default page)
    - **OAuth Apps Token Flow** - Exchange client ID/secret for access tokens
-   - **Global Clients** - Manage all OAuth clients in Hydra (accessible via direct URL: `/clients`)
+   - **Global Clients** - Manage all OAuth clients in Hydra (only visible to users in `GLOBAL_CLIENTS_ADMIN_IDENTITY_IDS` whitelist)
 
 ### Client Management
 
