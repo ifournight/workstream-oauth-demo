@@ -23,26 +23,10 @@
       }
     ],
     "paths": {
-      "@/components/base/*": [
-        "./components/base/*"
-      ],
-      "@/components/ui/*": [
-        "./app/components/ui/*"
-      ],
-      "@/hooks/*": [
-        "./hooks/*"
-      ],
-      "@/providers/*": [
-        "./providers/*"
-      ],
       "@/*": [
         "./*"
       ]
-    },
-    "types": [
-      "bun-types",
-      "node"
-    ]
+    }
   },
   "include": [
     "next-env.d.ts",
@@ -52,6 +36,7 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "../demo"
   ]
 }
