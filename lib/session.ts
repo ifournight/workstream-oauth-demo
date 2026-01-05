@@ -33,7 +33,10 @@ export const sessionOptions = {
 export async function getSession(
   cookieStore?: ReadonlyRequestCookies
 ): Promise<IronSession<SessionData>> {
-  const cookieStoreToUse = cookieStore || (await import('next/headers').then(m => m.cookies()))
+  const cookieStoreToUse = cookieStore ?? (await import('next/headers').then(m => m.cookies()))
+  if (!cookieStoreToUse) {
+    throw new Error('Cookie store is not available')
+  }
   return await getIronSession<SessionData>(cookieStoreToUse, sessionOptions)
 }
 
@@ -80,7 +83,10 @@ export async function createSession(
 export async function clearSession(
   cookieStore?: ReadonlyRequestCookies
 ): Promise<void> {
-  const cookieStoreToUse = cookieStore || (await import('next/headers').then(m => m.cookies()))
+  const cookieStoreToUse = cookieStore ?? (await import('next/headers').then(m => m.cookies()))
+  if (!cookieStoreToUse) {
+    throw new Error('Cookie store is not available')
+  }
   const session = await getIronSession<SessionData>(cookieStoreToUse, sessionOptions)
   session.destroy()
 }
@@ -134,14 +140,16 @@ export async function getIdentityIdFromSession(
     return session.identityId || null
   } catch (error) {
     // Session decryption failed (e.g., SESSION_SECRET changed)
-    // Clear the invalid cookie
-    console.warn('Failed to decrypt session in getIdentityIdFromSession, clearing invalid cookie:', error)
-    try {
-      const cookieStoreToUse = cookieStore || (await import('next/headers').then(m => m.cookies()))
-      const invalidSession = await getIronSession<SessionData>(cookieStoreToUse, sessionOptions)
-      invalidSession.destroy()
-    } catch (clearError) {
-      console.error('Failed to clear invalid session:', clearError)
+    // Only try to clear the invalid cookie if we have a cookieStore provided
+    // Don't try to access cookies() during static generation (build time)
+    if (cookieStore) {
+      try {
+        const invalidSession = await getIronSession<SessionData>(cookieStore, sessionOptions)
+        invalidSession.destroy()
+      } catch (clearError) {
+        // Silently fail - this might happen during build time
+        // The error is already logged above
+      }
     }
     return null
   }

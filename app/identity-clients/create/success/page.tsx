@@ -1,15 +1,16 @@
 'use client'
 
 import { useSearchParams, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 // Using a simple check icon or emoji
 import { Button } from '@/components/base/buttons/button'
 import { Card, CardContent } from '@/app/components/ui/card'
 import { PageHeader } from '@/app/components/page-header'
 import { useBreadcrumbs } from '@/lib/breadcrumbs'
 import { Alert } from '@/app/components/ui/alert'
+import { LoadingIndicator } from '@/components/application/loading-indicator/loading-indicator'
 
-export default function CreateIdentityClientSuccessPage() {
+function CreateIdentityClientSuccessPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { setBreadcrumbs } = useBreadcrumbs()
@@ -194,6 +195,25 @@ export default function CreateIdentityClientSuccessPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function CreateIdentityClientSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-7xl">
+        <PageHeader title="Create Identity Client" />
+        <Card>
+          <CardContent>
+            <div className="flex items-center justify-center py-12">
+              <LoadingIndicator />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <CreateIdentityClientSuccessPageContent />
+    </Suspense>
   )
 }
 

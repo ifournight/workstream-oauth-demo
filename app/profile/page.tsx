@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { PageHeader } from '@/app/components/page-header'
@@ -9,7 +9,7 @@ import { CodeSnippet } from '@/app/components/ui/code-snippet'
 import { Input } from '@/components/base/input/input'
 import { Button } from '@/components/base/buttons/button'
 import { LoadingIndicator } from '@/components/application/loading-indicator/loading-indicator'
-import { Copy, Check } from '@untitledui/icons'
+import { Copy01, Check } from '@untitledui/icons'
 import { useClipboard } from '@/hooks/use-clipboard'
 import { toast } from 'sonner'
 
@@ -28,7 +28,7 @@ interface SessionInfo {
   expiresIn?: number
 }
 
-export default function ProfilePage() {
+function ProfilePageContent() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -164,7 +164,7 @@ export default function ProfilePage() {
                   color="tertiary"
                   size="sm"
                   onClick={() => copyIdentityId(identityId)}
-                  iconLeading={copiedIdentityId ? Check : Copy}
+                  iconLeading={copiedIdentityId ? Check : Copy01}
                 >
                   {copiedIdentityId ? 'Copied' : 'Copy'}
                 </Button>
@@ -196,7 +196,7 @@ export default function ProfilePage() {
                     color="tertiary"
                     size="sm"
                     onClick={() => copyTokenPreview(`${tokenPreview.prefix}...${tokenPreview.suffix}`)}
-                    iconLeading={copiedTokenPreview ? Check : Copy}
+                    iconLeading={copiedTokenPreview ? Check : Copy01}
                   >
                     {copiedTokenPreview ? 'Copied' : 'Copy'}
                   </Button>
@@ -270,5 +270,17 @@ export default function ProfilePage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-[400px]">
+        <LoadingIndicator />
+      </div>
+    }>
+      <ProfilePageContent />
+    </Suspense>
   )
 }

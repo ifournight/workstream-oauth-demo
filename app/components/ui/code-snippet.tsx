@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, Check, ChevronDown } from "@untitledui/icons";
+import { Copy01, Check, ChevronDown } from "@untitledui/icons";
 import { Button } from "@/components/base/buttons/button";
 import { useClipboard } from "@/hooks/use-clipboard";
 import { cx } from "@/utils/cx";
@@ -48,12 +48,12 @@ export function CodeSnippet({
           <Button
             color="tertiary"
             size="sm"
-            onClick={(e) => {
+            onClick={(e: React.MouseEvent) => {
               e.preventDefault();
               e.stopPropagation();
               copy(code);
             }}
-            iconLeading={copied ? Check : Copy}
+            iconLeading={copied ? Check : Copy01}
           >
             {copied ? "Copied" : "Copy"}
           </Button>
@@ -74,7 +74,7 @@ export function CodeSnippet({
             color="tertiary"
             size="sm"
             onClick={() => copy(code)}
-            iconLeading={copied ? Check : Copy}
+            iconLeading={copied ? Check : Copy01}
           >
             {copied ? "Copied" : "Copy"}
           </Button>
@@ -87,7 +87,7 @@ export function CodeSnippet({
               color="tertiary"
               size="sm"
               onClick={() => copy(code)}
-              iconLeading={copied ? Check : Copy}
+              iconLeading={copied ? Check : Copy01}
             >
               {copied ? "Copied" : "Copy"}
             </Button>

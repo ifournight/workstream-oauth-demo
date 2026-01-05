@@ -6,6 +6,9 @@ import { IdentityClientsPageClient } from './identity-clients-page-client'
 import { getUserManagementAPIDocs } from '@/generated/ums-api'
 import { getIdentityIdFromSession } from '@/lib/session'
 
+// Force dynamic rendering since we use cookies for session
+export const dynamic = 'force-dynamic'
+
 /**
  * Server Component for Identity Clients Page
  * Prefetches data on the server and passes it to the client component via hydration

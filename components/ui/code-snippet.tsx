@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Check } from "@untitledui/icons";
+import { Copy01, Check } from "@untitledui/icons";
 import { Button } from "@/components/base/buttons/button";
 import { useClipboard } from "@/hooks/use-clipboard";
 import { cx } from "@/utils/cx";
@@ -25,7 +25,7 @@ export function CodeSnippet({ code, language = "json", title, className }: CodeS
             color="tertiary"
             size="sm"
             onClick={() => copy(code)}
-            iconLeading={copied ? Check : Copy}
+            iconLeading={copied ? Check : Copy01}
           >
             {copied ? "Copied" : "Copy"}
           </Button>
@@ -38,7 +38,7 @@ export function CodeSnippet({ code, language = "json", title, className }: CodeS
               color="tertiary"
               size="sm"
               onClick={() => copy(code)}
-              iconLeading={copied ? Check : Copy}
+              iconLeading={copied ? Check : Copy01}
             >
               {copied ? "Copied" : "Copy"}
             </Button>
