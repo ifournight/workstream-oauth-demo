@@ -62,3 +62,50 @@ export function loadConfig(): EnvConfig {
 // Export singleton instance
 export const config = loadConfig();
 
+/**
+ * Get the base URL for the application
+ * Priority:
+ * 1. NEXT_PUBLIC_BASE_URL environment variable (if set)
+ * 2. Dynamically from request (for Vercel deployments)
+ * 3. Fallback to localhost:3000 for development
+ * 
+ * @param request - Optional NextRequest to extract base URL from
+ * @returns Base URL (e.g., https://example.com or http://localhost:3000)
+ */
+export function getBaseUrl(request?: { url?: string; headers?: Headers }): string {
+  // Priority 1: Use environment variable if set
+  if (process.env.NEXT_PUBLIC_BASE_URL) {
+    return process.env.NEXT_PUBLIC_BASE_URL;
+  }
+
+  // Priority 2: Extract from request if available
+  if (request) {
+    try {
+      // First, try to extract from request.url (most reliable)
+      const url = request.url;
+      if (url) {
+        const urlObj = new URL(url);
+        return `${urlObj.protocol}//${urlObj.host}`;
+      }
+
+      // Fallback: Try to construct from headers (for Vercel/proxy scenarios)
+      const headers = request.headers;
+      if (headers) {
+        const host = headers.get('host') || headers.get('x-forwarded-host');
+        if (host) {
+          // Determine protocol from headers
+          // Vercel sets x-forwarded-proto header
+          const protocol = headers.get('x-forwarded-proto') || 
+                         (headers.get('x-forwarded-ssl') === 'on' ? 'https' : 'http');
+          return `${protocol}://${host}`;
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to extract base URL from request:', error);
+    }
+  }
+
+  // Priority 3: Fallback to localhost for development
+  return 'http://localhost:3000';
+}
+

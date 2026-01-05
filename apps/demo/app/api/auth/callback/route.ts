@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
-import { config } from '@/lib/config'
+import { config, getBaseUrl } from '@/lib/config'
 import { createSession } from '@/lib/session'
 import { getIdentityIdFromToken } from '@/lib/jwt'
 
@@ -43,8 +43,11 @@ export async function GET(request: NextRequest) {
 
     const finalClientId = storedClientId || config.clientId
     // Use /api/auth/callback as the redirect URI for login flow
+    // If we have a stored redirect URI from the login flow, use it
+    // Otherwise, construct it dynamically from the current request
+    const baseUrl = getBaseUrl(request)
     const finalRedirectUri = storedRedirectUri || 
-      `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/auth/callback`
+      `${baseUrl}/api/auth/callback`
 
     if (!finalClientId) {
       redirect('/login?error=missing_client_id')

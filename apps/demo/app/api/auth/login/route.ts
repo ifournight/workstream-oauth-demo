@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
-import { config } from '@/lib/config'
+import { config, getBaseUrl } from '@/lib/config'
 import { generateCodeVerifier, generateCodeChallenge, generateState } from '@/lib/oauth'
 import { NextRequest } from 'next/server'
 
@@ -18,8 +18,9 @@ export async function GET(request: NextRequest) {
   
   // Use callback URL for login flow
   // Use /api/auth/callback as the redirect URI for login flow
+  const baseUrl = getBaseUrl(request)
   const redirectUri = searchParams.get('redirect_uri') || 
-    `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/auth/callback`
+    `${baseUrl}/api/auth/callback`
   
   // Get return URL (where to redirect after successful login)
   const returnUrl = searchParams.get('return_url') || '/'
