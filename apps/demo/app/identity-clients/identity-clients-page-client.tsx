@@ -64,6 +64,7 @@ function IdentityClientsContent({ identityId }: { identityId: string | null }) {
   }, [setBreadcrumbs])
 
   // Fetch clients for current user's identity - this will use the prefetched data from SSR
+  // Call Next.js API route which handles CORS and authentication
   const { data: clientsData, isLoading: loading, error } = useQuery({
     queryKey: ['identity-clients', currentIdentityId],
     queryFn: async () => {

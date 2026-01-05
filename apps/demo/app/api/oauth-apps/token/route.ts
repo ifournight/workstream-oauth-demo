@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { config } from '@/lib/config'
+import { getSession } from '@/lib/session'
 // Import generated API functions from Orval
 // Note: Run `bun run generate:api` first to generate these functions
 import { getUserManagementAPIDocs } from '@/generated/ums-api'
+import { setUmsAccessToken } from '@/lib/api/ums-client'
 
-// POST /api/client-credentials/token - Get token using OAuth apps token flow (UMS implementation)
+// POST /api/oauth-apps/token - Get token using OAuth apps token flow (UMS implementation)
 export async function POST(request: NextRequest) {
   try {
     if (!config.umsBaseUrl) {
@@ -29,6 +31,13 @@ export async function POST(request: NextRequest) {
         { error: 'client_secret is required' },
         { status: 400 }
       )
+    }
+
+    // Get access token from session and set it for UMS API calls
+    const cookieStore = await import('next/headers').then(m => m.cookies())
+    const session = await getSession(cookieStore)
+    if (session.accessToken) {
+      setUmsAccessToken(session.accessToken)
     }
 
     try {

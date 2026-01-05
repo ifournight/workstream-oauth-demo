@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { config } from '@/lib/config'
-import { getIdentityIdFromSession } from '@/lib/session'
+import { getIdentityIdFromSession, getSession } from '@/lib/session'
 // Import generated API functions from Orval
 // Note: Run `bun run generate:api` first to generate these functions
 import { getUserManagementAPIDocs } from '@/generated/ums-api'
+import { setUmsAccessToken } from '@/lib/api/ums-client'
 
 // GET /api/identity-clients - List clients for an identity
 export async function GET(request: NextRequest) {
@@ -26,6 +27,13 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('[Get Identity Clients] Identity ID:', identityId)
+    
+    // Get access token from session and set it for UMS API calls
+    const cookieStore = await import('next/headers').then(m => m.cookies())
+    const session = await getSession(cookieStore)
+    if (session.accessToken) {
+      setUmsAccessToken(session.accessToken)
+    }
     
     try {
       // Call generated UMS API function with owner_identity_id query parameter
@@ -127,6 +135,13 @@ export async function POST(request: NextRequest) {
     }
 
     const clientData = await request.json()
+    
+    // Get access token from session and set it for UMS API calls
+    const cookieStore = await import('next/headers').then(m => m.cookies())
+    const session = await getSession(cookieStore)
+    if (session.accessToken) {
+      setUmsAccessToken(session.accessToken)
+    }
     
     // Import generated API functions from Orval
     const { getUserManagementAPIDocs } = await import('@/generated/ums-api')

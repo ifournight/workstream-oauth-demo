@@ -4,7 +4,8 @@ import { IdentityClientsPageClient } from './identity-clients-page-client'
 // Import generated API functions from Orval
 // Note: Run `bun run generate:api` first to generate these functions
 import { getUserManagementAPIDocs } from '@/generated/ums-api'
-import { getIdentityIdFromSession } from '@/lib/session'
+import { getIdentityIdFromSession, getSession } from '@/lib/session'
+import { setUmsAccessToken } from '@/lib/api/ums-client'
 
 // Force dynamic rendering since we use cookies for session
 export const dynamic = 'force-dynamic'
@@ -28,7 +29,15 @@ export default async function IdentityClientsPage() {
   // Only prefetch if we have an identity ID
   if (identityId) {
     try {
-      // Prefetch clients data on the server
+      // Get access token from session and set it for UMS API calls
+      const cookieStore = await import('next/headers').then(m => m.cookies())
+      const session = await getSession(cookieStore)
+      if (session.accessToken) {
+        setUmsAccessToken(session.accessToken)
+      }
+      
+      // Prefetch clients data on the server using generated UMS API
+      // Server-side calls don't have CORS issues
       await queryClient.prefetchQuery({
         queryKey: ['identity-clients', identityId],
         queryFn: async () => {
@@ -43,7 +52,7 @@ export default async function IdentityClientsPage() {
           
           const clients = response.data.apps
           
-          // Transform to match client component expectations
+          // Transform to match client component expectations (same format as API route)
           return clients.map((client: any, index: number) => ({
             ...client,
             client_id: client.client_id || client.id,

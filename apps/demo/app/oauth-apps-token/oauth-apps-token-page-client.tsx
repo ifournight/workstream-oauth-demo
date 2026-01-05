@@ -128,7 +128,7 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
         throw new Error('Client ID and Client Secret are required')
       }
 
-      const response = await fetch('/api/client-credentials/token', {
+      const response = await fetch('/api/oauth-apps/token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

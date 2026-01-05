@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { config } from '@/lib/config'
-import { getIdentityIdFromSession } from '@/lib/session'
+import { getIdentityIdFromSession, getSession } from '@/lib/session'
 // Import generated API functions from Orval
 // Note: Run `bun run generate:api` first to generate these functions
 import { getUserManagementAPIDocs } from '@/generated/ums-api'
+import { setUmsAccessToken } from '@/lib/api/ums-client'
 
 // GET /api/identity-clients/:id - Get a single identity client
 export async function GET(
@@ -29,6 +30,13 @@ export async function GET(
     }
 
     const { id: clientId } = await params
+
+    // Get access token from session and set it for UMS API calls
+    const cookieStore = await import('next/headers').then(m => m.cookies())
+    const session = await getSession(cookieStore)
+    if (session.accessToken) {
+      setUmsAccessToken(session.accessToken)
+    }
 
     try {
       const api = getUserManagementAPIDocs()
@@ -103,6 +111,13 @@ export async function PUT(
     const { id: clientId } = await params
     const clientData = await request.json()
     
+    // Get access token from session and set it for UMS API calls
+    const cookieStore = await import('next/headers').then(m => m.cookies())
+    const session = await getSession(cookieStore)
+    if (session.accessToken) {
+      setUmsAccessToken(session.accessToken)
+    }
+    
     // Import generated API functions from Orval
     const { getUserManagementAPIDocs } = await import('@/generated/ums-api')
     const api = getUserManagementAPIDocs()
@@ -167,6 +182,13 @@ export async function DELETE(
     }
 
     const { id: clientId } = await params
+
+    // Get access token from session and set it for UMS API calls
+    const cookieStore = await import('next/headers').then(m => m.cookies())
+    const session = await getSession(cookieStore)
+    if (session.accessToken) {
+      setUmsAccessToken(session.accessToken)
+    }
 
     // Import generated API functions from Orval
     const { getUserManagementAPIDocs } = await import('@/generated/ums-api')
