@@ -2,17 +2,20 @@
 
 import React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import { ThemeToggle } from "@/app/components/theme-toggle";
 import { Avatar } from "@/components/base/avatar/avatar";
+import { Dropdown } from "@/components/base/dropdown/dropdown";
 import { Button } from "@/components/base/buttons/button";
-import { LogOut01 } from "@untitledui/icons";
+import { LogOut01, User01 } from "@untitledui/icons";
 import { useAuth } from "@/hooks/use-auth";
 import { useBreadcrumbs } from "@/lib/breadcrumbs";
 
 export function HeaderBar() {
     const { breadcrumbs } = useBreadcrumbs();
     const { user, isAuthenticated, logout } = useAuth();
+    const router = useRouter();
 
     // Get user initials for avatar
     const getUserInitials = () => {
@@ -40,33 +43,68 @@ export function HeaderBar() {
                 )}
             </div>
 
-            {/* Right: Theme Toggle + Profile + Sign Out */}
+            {/* Right: Theme Toggle + User Menu */}
             <div className="flex items-center gap-3">
                 <ThemeToggle iconOnly />
                 
                 {isAuthenticated && user && (
-                    <>
-                        <Link 
-                            href="/profile"
-                            className="flex items-center justify-center h-10 w-10 rounded-full hover:bg-secondary transition-colors"
-                            aria-label="Profile"
+                    <Dropdown.Root>
+                        <Button
+                            color="tertiary"
+                            size="sm"
+                            className="!p-0 !h-10 !w-10 rounded-full"
+                            aria-label="User menu"
                         >
                             <Avatar
                                 size="sm"
                                 initials={getUserInitials()}
                                 contrastBorder={false}
                             />
-                        </Link>
-                        <Button
-                            color="tertiary"
-                            size="sm"
-                            onClick={logout}
-                            iconLeading={LogOut01}
-                            aria-label="Sign out"
-                        >
-                            Sign Out
                         </Button>
-                    </>
+                        <Dropdown.Popover>
+                            <Dropdown.Menu>
+                                <Dropdown.Item
+                                    label="Profile"
+                                    icon={User01}
+                                    onAction={() => router.push('/profile')}
+                                />
+                                <Dropdown.Separator />
+                                <Dropdown.Item
+                                    unstyled
+                                    onAction={logout}
+                                    className="group block cursor-pointer px-1.5 py-px outline-hidden"
+                                >
+                                    {(state) => (
+                                        <div
+                                            className={`relative flex items-center rounded-md px-2.5 py-2 outline-focus-ring transition duration-100 ease-linear ${
+                                                state.isFocused || state.isHovered
+                                                    ? "bg-destructive_hover"
+                                                    : ""
+                                            }`}
+                                        >
+                                            <LogOut01
+                                                aria-hidden="true"
+                                                className={`mr-2 size-4 shrink-0 stroke-[2.25px] ${
+                                                    state.isDisabled
+                                                        ? "text-fg-disabled"
+                                                        : "text-destructive"
+                                                }`}
+                                            />
+                                            <span
+                                                className={`grow truncate text-sm font-semibold ${
+                                                    state.isDisabled
+                                                        ? "text-disabled"
+                                                        : "text-destructive"
+                                                }`}
+                                            >
+                                                Sign Out
+                                            </span>
+                                        </div>
+                                    )}
+                                </Dropdown.Item>
+                            </Dropdown.Menu>
+                        </Dropdown.Popover>
+                    </Dropdown.Root>
                 )}
             </div>
         </header>
