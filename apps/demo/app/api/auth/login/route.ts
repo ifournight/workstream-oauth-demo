@@ -22,11 +22,31 @@ export async function GET(request: NextRequest) {
   const redirectUri = searchParams.get('redirect_uri') || 
     `${baseUrl}/api/auth/callback`
   
+  // Debug logging
+  console.log('[Login API] Base URL extraction:', {
+    baseUrl,
+    redirectUri,
+    requestUrl: request.url,
+    headers: {
+      host: request.headers.get('host'),
+      'x-forwarded-host': request.headers.get('x-forwarded-host'),
+      'x-forwarded-proto': request.headers.get('x-forwarded-proto'),
+    },
+    env: {
+      NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL,
+      VERCEL: process.env.VERCEL,
+    },
+  })
+  
   // Get return URL (where to redirect after successful login)
   const returnUrl = searchParams.get('return_url') || '/'
 
   if (!clientId) {
     redirect('/login?error=missing_client_id')
+  }
+  
+  if (!baseUrl || baseUrl === 'http://localhost:3000') {
+    console.error('[Login API] Warning: baseUrl is localhost, this might be incorrect for Vercel deployment')
   }
 
   // Generate PKCE parameters

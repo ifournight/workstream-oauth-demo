@@ -98,17 +98,20 @@ export function getBaseUrl(request?: { url?: string; headers?: Headers }): strin
           const protocol = forwardedProto || (process.env.VERCEL ? 'https' : 'http');
           const baseUrl = `${protocol}://${host}`;
           
-          // Debug logging (can be removed in production)
+          // Debug logging - always log in development, or when DEBUG_BASE_URL is set
           if (process.env.NODE_ENV !== 'production' || process.env.DEBUG_BASE_URL) {
-            console.log('[getBaseUrl]', {
+            console.log('[getBaseUrl] Successfully extracted base URL:', {
               forwardedHost,
               hostHeader,
               forwardedProto,
               protocol,
               baseUrl,
               vercel: process.env.VERCEL,
+              nodeEnv: process.env.NODE_ENV,
             });
           }
+          
+          return baseUrl;
           
           return baseUrl;
         }
@@ -134,20 +137,28 @@ export function getBaseUrl(request?: { url?: string; headers?: Headers }): strin
         }
       }
     } catch (error) {
-      console.error('Failed to extract base URL from request:', error);
+      console.error('[getBaseUrl] Failed to extract base URL from request:', error);
       // Log request details for debugging
       if (request?.headers) {
-        console.error('Request headers:', {
+        console.error('[getBaseUrl] Request details:', {
           host: request.headers.get('host'),
           'x-forwarded-host': request.headers.get('x-forwarded-host'),
           'x-forwarded-proto': request.headers.get('x-forwarded-proto'),
           url: request.url,
+          allHeaders: Object.fromEntries(request.headers.entries()),
         });
       }
     }
   }
 
   // Priority 3: Fallback to localhost for development
-  return 'http://localhost:3000';
+  const fallbackUrl = 'http://localhost:3000';
+  console.warn('[getBaseUrl] Using fallback URL:', fallbackUrl, {
+    hasRequest: !!request,
+    hasUrl: !!request?.url,
+    hasHeaders: !!request?.headers,
+    nextPublicBaseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+  });
+  return fallbackUrl;
 }
 
