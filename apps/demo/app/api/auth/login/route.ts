@@ -45,8 +45,9 @@ export async function GET(request: NextRequest) {
     redirect('/login?error=missing_client_id')
   }
   
-  if (!baseUrl || baseUrl === 'http://localhost:3000') {
-    console.error('[Login API] Warning: baseUrl is localhost, this might be incorrect for Vercel deployment')
+  // Only warn if we're in production/Vercel but got localhost (shouldn't happen)
+  if (process.env.VERCEL && process.env.NODE_ENV === 'production' && baseUrl.includes('localhost')) {
+    console.warn('[Login API] Warning: baseUrl is localhost in production, this might be incorrect')
   }
 
   // Generate PKCE parameters
