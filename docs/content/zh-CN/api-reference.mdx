@@ -1,0 +1,86 @@
+# API 参考
+
+## 客户端凭据令牌端点
+
+### POST /api/client-credentials/token
+
+使用客户端凭据交换访问令牌。
+
+**基础 URL**: `https://your-demo-app.vercel.app`
+
+**端点**: `/api/client-credentials/token`
+
+**方法**: `POST`
+
+**Content-Type**: `application/json`
+
+#### 请求体
+
+```json
+{
+  "client_id": "string (必需)",
+  "client_secret": "string (必需)"
+}
+```
+
+#### 成功响应 (200 OK)
+
+```json
+{
+  "access_token": "string",
+  "token_type": "Bearer",
+  "expires_in": 3600,
+  "scope": "string"
+}
+```
+
+#### 错误响应
+
+**400 Bad Request** - 缺少必需参数
+```json
+{
+  "error": "client_id is required"
+}
+```
+
+**401 Unauthorized** - 无效的客户端凭据
+```json
+{
+  "error": "invalid_client",
+  "error_description": "Client authentication failed"
+}
+```
+
+**500 Internal Server Error** - 服务器配置问题
+```json
+{
+  "error": "UMS_BASE_URL not configured. Please set it as an environment variable."
+}
+```
+
+#### 请求示例
+
+```bash
+curl -X POST https://your-demo-app.vercel.app/api/client-credentials/token \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_id": "your-client-id",
+    "client_secret": "your-client-secret"
+  }'
+```
+
+#### 使用访问令牌
+
+在 `Authorization` 请求头中包含访问令牌：
+
+```
+Authorization: Bearer <access_token>
+```
+
+## 注意事项
+
+- 此端点内部使用 UMS API
+- 将来将替换为公共 API
+- 令牌通常在 3600 秒（1 小时）后过期
+- 安全存储令牌并在过期前刷新
+

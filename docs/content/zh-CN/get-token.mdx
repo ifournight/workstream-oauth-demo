@@ -1,29 +1,29 @@
-# How to Get an Access Token
+# 如何获取访问令牌
 
-This guide explains how to obtain an access token using your OAuth client credentials.
+本指南说明如何使用您的 OAuth 客户端凭据获取访问令牌。
 
-## Prerequisites
+## 前置要求
 
-- A valid `client_id` and `client_secret` (obtained from [creating a client](/create-client))
-- The demo application API endpoint URL
+- 有效的 `client_id` 和 `client_secret`（从[创建客户端](./create-client)获得）
+- 演示应用程序 API 端点 URL
 
-## API Endpoint
+## API 端点
 
-**Endpoint**: `POST /api/client-credentials/token`
+**端点**: `POST /api/client-credentials/token`
 
-**Base URL**: `https://your-demo-app.vercel.app`
+**基础 URL**: `https://your-demo-app.vercel.app`
 
-**Full URL**: `https://your-demo-app.vercel.app/api/client-credentials/token`
+**完整 URL**: `https://your-demo-app.vercel.app/api/client-credentials/token`
 
-## Request Format
+## 请求格式
 
-### Headers
+### 请求头
 
 ```
 Content-Type: application/json
 ```
 
-### Request Body
+### 请求体
 
 ```json
 {
@@ -32,9 +32,9 @@ Content-Type: application/json
 }
 ```
 
-## Response Format
+## 响应格式
 
-### Success Response
+### 成功响应
 
 ```json
 {
@@ -45,16 +45,16 @@ Content-Type: application/json
 }
 ```
 
-### Error Response
+### 错误响应
 
 ```json
 {
   "error": "invalid_client",
-  "error_description": "Client authentication failed"
+  "error_description": "客户端身份验证失败"
 }
 ```
 
-## Code Examples
+## 代码示例
 
 ### JavaScript/TypeScript (Fetch API)
 
@@ -73,36 +73,36 @@ async function getToken(clientId: string, clientSecret: string): Promise<string>
   
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(`Failed to get token: ${error.error || response.statusText}`);
+    throw new Error(`获取令牌失败: ${error.error || response.statusText}`);
   }
   
   const data = await response.json();
   return data.access_token;
 }
 
-// Usage example
+// 使用示例
 try {
   const token = await getToken('your-client-id', 'your-client-secret');
-  console.log('Access Token:', token);
+  console.log('访问令牌:', token);
   
-  // Use the token to make authenticated API calls
+  // 使用令牌进行经过身份验证的 API 调用
   const apiResponse = await fetch('https://api.example.com/data', {
     headers: {
       'Authorization': `Bearer ${token}`,
     },
   });
 } catch (error) {
-  console.error('Error:', error);
+  console.error('错误:', error);
 }
 ```
 
-### Python (requests library)
+### Python (requests 库)
 
 ```python
 import requests
 
 def get_token(client_id: str, client_secret: str) -> str:
-    """Get OAuth access token using client credentials."""
+    """使用客户端凭据获取 OAuth 访问令牌。"""
     response = requests.post(
         'https://your-demo-app.vercel.app/api/client-credentials/token',
         json={
@@ -114,25 +114,25 @@ def get_token(client_id: str, client_secret: str) -> str:
     data = response.json()
     return data['access_token']
 
-# Usage example
+# 使用示例
 try:
     token = get_token('your-client-id', 'your-client-secret')
-    print(f'Access Token: {token}')
+    print(f'访问令牌: {token}')
     
-    # Use the token to make authenticated API calls
+    # 使用令牌进行经过身份验证的 API 调用
     api_response = requests.get(
         'https://api.example.com/data',
         headers={'Authorization': f'Bearer {token}'}
     )
     api_response.raise_for_status()
 except requests.exceptions.RequestException as e:
-    print(f'Error: {e}')
+    print(f'错误: {e}')
 ```
 
 ### cURL
 
 ```bash
-# Get token
+# 获取令牌
 curl -X POST https://your-demo-app.vercel.app/api/client-credentials/token \
   -H "Content-Type: application/json" \
   -d '{
@@ -140,7 +140,7 @@ curl -X POST https://your-demo-app.vercel.app/api/client-credentials/token \
     "client_secret": "your-client-secret"
   }'
 
-# Use token in API call
+# 在 API 调用中使用令牌
 TOKEN=$(curl -s -X POST https://your-demo-app.vercel.app/api/client-credentials/token \
   -H "Content-Type: application/json" \
   -d '{
@@ -152,7 +152,7 @@ curl -H "Authorization: Bearer $TOKEN" \
   https://api.example.com/data
 ```
 
-### Node.js (Native HTTP/HTTPS)
+### Node.js (原生 HTTP/HTTPS)
 
 ```javascript
 const https = require('https');
@@ -186,7 +186,7 @@ function getToken(clientId, clientSecret) {
           const result = JSON.parse(responseData);
           resolve(result.access_token);
         } else {
-          reject(new Error(`Failed: ${res.statusCode} ${responseData}`));
+          reject(new Error(`失败: ${res.statusCode} ${responseData}`));
         }
       });
     });
@@ -200,32 +200,32 @@ function getToken(clientId, clientSecret) {
   });
 }
 
-// Usage
+// 使用
 getToken('your-client-id', 'your-client-secret')
   .then(token => {
-    console.log('Access Token:', token);
+    console.log('访问令牌:', token);
   })
   .catch(error => {
-    console.error('Error:', error);
+    console.error('错误:', error);
   });
 ```
 
-## Error Handling
+## 错误处理
 
-Common error scenarios:
+常见错误场景：
 
-### Invalid Client Credentials
+### 无效的客户端凭据
 
 ```json
 {
   "error": "invalid_client",
-  "error_description": "Client authentication failed"
+  "error_description": "客户端身份验证失败"
 }
 ```
 
-**Solution**: Verify that your `client_id` and `client_secret` are correct.
+**解决方案**：验证您的 `client_id` 和 `client_secret` 是否正确。
 
-### Missing Parameters
+### 缺少参数
 
 ```json
 {
@@ -233,9 +233,9 @@ Common error scenarios:
 }
 ```
 
-**Solution**: Ensure both `client_id` and `client_secret` are included in the request body.
+**解决方案**：确保请求体中包含 `client_id` 和 `client_secret`。
 
-### Server Error
+### 服务器错误
 
 ```json
 {
@@ -243,17 +243,17 @@ Common error scenarios:
 }
 ```
 
-**Solution**: This indicates a server configuration issue. Contact the administrator.
+**解决方案**：这表示服务器配置问题。请联系管理员。
 
-## Using the Access Token
+## 使用访问令牌
 
-Once you have the access token, include it in the `Authorization` header of your API requests:
+获得访问令牌后，在 API 请求的 `Authorization` 请求头中包含它：
 
 ```
 Authorization: Bearer <access_token>
 ```
 
-### Example API Call
+### API 调用示例
 
 ```javascript
 const response = await fetch('https://api.example.com/protected-resource', {
@@ -264,23 +264,23 @@ const response = await fetch('https://api.example.com/protected-resource', {
 });
 ```
 
-## Token Expiration
+## 令牌过期
 
-Access tokens typically expire after a certain period (e.g., 3600 seconds / 1 hour). You'll need to:
+访问令牌通常在特定时间后过期（例如，3600 秒 / 1 小时）。您需要：
 
-1. Monitor the token expiration time
-2. Request a new token before it expires
-3. Handle 401 Unauthorized responses by refreshing the token
+1. 监控令牌过期时间
+2. 在过期前请求新令牌
+3. 通过刷新令牌处理 401 未授权响应
 
-## Notes
+## 注意事项
 
-- The token endpoint uses the UMS API internally
-- This will be replaced with a public API in the future
-- Store tokens securely and never expose them in client-side code
-- Tokens are bearer tokens - anyone with the token can use it
+- 令牌端点内部使用 UMS API
+- 将来将替换为公共 API
+- 安全存储令牌，切勿在客户端代码中暴露它们
+- 令牌是承载令牌 - 任何拥有令牌的人都可以使用它
 
-## Next Steps
+## 下一步
 
-- Learn about token refresh mechanisms
-- Explore API endpoints that accept these tokens
-- Implement token caching and refresh logic in your application
+- 了解令牌刷新机制
+- 探索接受这些令牌的 API 端点
+- 在您的应用程序中实现令牌缓存和刷新逻辑
