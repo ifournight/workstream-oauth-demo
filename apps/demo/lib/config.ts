@@ -66,8 +66,9 @@ export const config = loadConfig();
  * Get the base URL for the application
  * Priority:
  * 1. NEXT_PUBLIC_BASE_URL environment variable (if set)
- * 2. Dynamically from request (for Vercel deployments)
- * 3. Fallback to localhost:3000 for development
+ * 2. Dynamically from request headers (for Vercel deployments - most reliable)
+ * 3. Dynamically from request.url
+ * 4. Fallback to localhost:3000 for development
  * 
  * @param request - Optional NextRequest to extract base URL from
  * @returns Base URL (e.g., https://example.com or http://localhost:3000)
@@ -81,27 +82,68 @@ export function getBaseUrl(request?: { url?: string; headers?: Headers }): strin
   // Priority 2: Extract from request if available
   if (request) {
     try {
-      // First, try to extract from request.url (most reliable)
-      const url = request.url;
-      if (url) {
-        const urlObj = new URL(url);
-        return `${urlObj.protocol}//${urlObj.host}`;
-      }
-
-      // Fallback: Try to construct from headers (for Vercel/proxy scenarios)
+      // In Vercel/proxy environments, headers are more reliable than request.url
       const headers = request.headers;
       if (headers) {
-        const host = headers.get('host') || headers.get('x-forwarded-host');
+        // Vercel sets x-forwarded-host and x-forwarded-proto headers
+        const forwardedHost = headers.get('x-forwarded-host');
+        const hostHeader = headers.get('host');
+        const host = forwardedHost || hostHeader;
+        
         if (host) {
           // Determine protocol from headers
-          // Vercel sets x-forwarded-proto header
-          const protocol = headers.get('x-forwarded-proto') || 
-                         (headers.get('x-forwarded-ssl') === 'on' ? 'https' : 'http');
-          return `${protocol}://${host}`;
+          // Vercel always sets x-forwarded-proto to 'https' for production
+          // If not set, default to 'https' for Vercel deployments (check via VERCEL env var)
+          const forwardedProto = headers.get('x-forwarded-proto');
+          const protocol = forwardedProto || (process.env.VERCEL ? 'https' : 'http');
+          const baseUrl = `${protocol}://${host}`;
+          
+          // Debug logging (can be removed in production)
+          if (process.env.NODE_ENV !== 'production' || process.env.DEBUG_BASE_URL) {
+            console.log('[getBaseUrl]', {
+              forwardedHost,
+              hostHeader,
+              forwardedProto,
+              protocol,
+              baseUrl,
+              vercel: process.env.VERCEL,
+            });
+          }
+          
+          return baseUrl;
+        }
+      }
+
+      // Fallback: Try to extract from request.url
+      const url = request.url;
+      if (url) {
+        // request.url might be a full URL or relative path
+        try {
+          const urlObj = new URL(url);
+          return `${urlObj.protocol}//${urlObj.host}`;
+        } catch {
+          // If url is relative, try to construct from headers again
+          const headers = request.headers;
+          if (headers) {
+            const host = headers.get('x-forwarded-host') || headers.get('host');
+            if (host) {
+              const protocol = headers.get('x-forwarded-proto') || 'https';
+              return `${protocol}://${host}`;
+            }
+          }
         }
       }
     } catch (error) {
-      console.warn('Failed to extract base URL from request:', error);
+      console.error('Failed to extract base URL from request:', error);
+      // Log request details for debugging
+      if (request?.headers) {
+        console.error('Request headers:', {
+          host: request.headers.get('host'),
+          'x-forwarded-host': request.headers.get('x-forwarded-host'),
+          'x-forwarded-proto': request.headers.get('x-forwarded-proto'),
+          url: request.url,
+        });
+      }
     }
   }
 
