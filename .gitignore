@@ -33,3 +33,4 @@ coverage/
 .ngrok/
 *.tsbuildinfo
 
+.vercel

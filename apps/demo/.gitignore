@@ -13,3 +13,5 @@ build/
 out/
 .next-env.d.ts
 
+.vercel
+.env*.local
