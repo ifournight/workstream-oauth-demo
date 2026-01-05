@@ -1,33 +1,47 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-const LOCALES = ['en', 'zh-CN'] as const
-const DEFAULT_LOCALE = 'en'
+const LOCALES = ["en", "zh-CN"] as const;
+const DEFAULT = "en";
+const COOKIE = "docs_locale";
 
-function hasLocalePrefix(pathname: string) {
-  return LOCALES.some(l => pathname === `/${l}` || pathname.startsWith(`/${l}/`))
+function hasLocale(path: string) {
+  return LOCALES.some((l) => path === `/${l}` || path.startsWith(`/${l}/`));
+}
+
+function fromAcceptLanguage(req: NextRequest) {
+  const al = req.headers.get("accept-language")?.toLowerCase() ?? "";
+  return al.includes("zh") ? "zh-CN" : DEFAULT;
 }
 
 export function proxy(req: NextRequest) {
-  const { pathname } = req.nextUrl
+  const { pathname } = req.nextUrl;
 
-  // 跳过 Next 内部与静态资源
   if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api') ||
-    pathname === '/favicon.ico' ||
-    pathname.includes('.')
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api/") ||
+    pathname.includes(".")
   ) {
-    return NextResponse.next()
+    return NextResponse.next();
   }
 
-  if (hasLocalePrefix(pathname)) return NextResponse.next()
+  if (hasLocale(pathname)) return NextResponse.next();
 
-  const url = req.nextUrl.clone()
-  url.pathname = `/${DEFAULT_LOCALE}${pathname === '/' ? '' : pathname}`
-  return NextResponse.redirect(url)
+  const saved = req.cookies.get(COOKIE)?.value;
+  const locale =
+    saved === "en" || saved === "zh-CN" ? saved : fromAcceptLanguage(req);
+
+  const url = req.nextUrl.clone();
+  url.pathname = `/${locale}${pathname === "/" ? "" : pathname}`;
+
+  const res = NextResponse.redirect(url);
+  res.cookies.set(COOKIE, locale, {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
+  return res;
 }
 
 export const config = {
-  matcher: ['/((?!_next|api).*)']
-}
+  matcher: ["/((?!_next|api/).*)"],
+};
