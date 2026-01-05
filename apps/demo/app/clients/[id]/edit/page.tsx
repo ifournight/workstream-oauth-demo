@@ -435,7 +435,7 @@ export default function EditClientPage() {
                   value={formData.redirect_uris}
                   onChange={(value) => setFormData({ ...formData, redirect_uris: value || '' })}
                   label="Redirect URIs (one per line)"
-                  placeholder="http://localhost:3000/callback"
+                  placeholder="http://localhost:3000/api/auth/callback"
                   rows={3}
                 />
               </section>
