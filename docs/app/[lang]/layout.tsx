@@ -13,10 +13,12 @@ export default async function LangLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ lang: "en" | "zh-CN" }>;
+  params: Promise<{ lang: string }>;
 }) {
   const { lang } = await params;
-  console.log({ lang });
+
+  // ✅ 运行时收敛成你支持的语言
+  const locale = lang === "zh-CN" ? "zh-CN" : "en";
 
   return (
     <>
@@ -24,14 +26,13 @@ export default async function LangLayout({
       <Layout
         navbar={navbar}
         footer={footer}
-        pageMap={await getPageMap(`/${lang}`)}
-        docsRepositoryBase="https://github.com/your-org/your-repo/tree/main/docs"
-        search={<Search placeholder="Search documentation..." />}
-        sidebar={{ defaultMenuCollapseLevel: 1 }}
+        pageMap={await getPageMap(`/${locale}`)}
         i18n={[
           { locale: "en", name: "English" },
           { locale: "zh-CN", name: "简体中文" },
         ]}
+        search={<Search placeholder="Search documentation..." />}
+        sidebar={{ defaultMenuCollapseLevel: 1 }}
       >
         {children}
       </Layout>
