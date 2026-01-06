@@ -80,9 +80,7 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
   }, [isAuthenticated, user?.identityId, serverIdentityId])
   
   // Default to 'identity' if user doesn't have access to global clients
-  const [clientType, setClientType] = useState<'global' | 'identity'>(
-    canManageGlobalClients ? 'identity' : 'identity'
-  )
+  const [clientType, setClientType] = useState<'global' | 'identity'>('identity')
   const [selectedClientId, setSelectedClientId] = useState<string>('')
   const [clientSecret, setClientSecret] = useState<string>('')
   const [tokenResponse, setTokenResponse] = useState<TokenResponse | null>(null)

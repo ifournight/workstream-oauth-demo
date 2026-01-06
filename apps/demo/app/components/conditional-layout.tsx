@@ -27,13 +27,14 @@ export function ConditionalLayout({ children, navigationItems }: ConditionalLayo
         if (isAuthenticated && user?.identityId) {
             fetch('/api/auth/access-control')
                 .then(async (res) => {
+                    // Check response status first to provide accurate error diagnostics
+                    if (!res.ok) {
+                        throw new Error(`HTTP error! status: ${res.status}`)
+                    }
                     // Check if response is JSON before parsing
                     const contentType = res.headers.get('content-type')
                     if (!contentType || !contentType.includes('application/json')) {
                         throw new Error('Invalid response type')
-                    }
-                    if (!res.ok) {
-                        throw new Error(`HTTP error! status: ${res.status}`)
                     }
                     return res.json()
                 })
