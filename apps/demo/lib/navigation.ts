@@ -13,37 +13,38 @@ export type NavigationSection = {
     items: NavItemType[];
 };
 
+// Navigation items structure - labels will be translated in components
 export const navigationItems: NavigationSection[] = [
     {
-        label: "Clients",
+        label: "clients", // Translation key
         items: [
             {
-                label: "My OAuth Clients",
+                label: "myOAuthClients", // Translation key
                 href: "/identity-clients",
                 icon: Key01,
             },
         ],
     },
     {
-        label: "Flows",
+        label: "flows", // Translation key
         items: [
             {
-                label: "OAuth Apps Token Flow",
+                label: "oauthAppsTokenFlow", // Translation key
                 href: "/oauth-apps-token",
                 icon: Server01,
             },
         ],
     },
     {
-        label: "Settings",
+        label: "settings", // Translation key
         items: [
             {
-                label: "Profile",
+                label: "profile", // Translation key
                 href: "/profile",
                 icon: User01,
             },
             {
-                label: "Configuration",
+                label: "configuration", // Translation key
                 href: "/config",
                 icon: Settings01,
             },

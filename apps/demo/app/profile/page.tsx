@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 import { useSearchParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { PageHeader } from '@/app/components/page-header'
 import { Card, CardContent, CardHeader } from '@/app/components/ui/card'
 import { CodeSnippet } from '@/app/components/ui/code-snippet'
@@ -32,6 +33,10 @@ function ProfilePageContent() {
   const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth()
   const searchParams = useSearchParams()
   const router = useRouter()
+  const t = useTranslations('profile')
+  const tCommon = useTranslations('common')
+  const tAuth = useTranslations('auth')
+  const tErrors = useTranslations('errors')
   const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const { copied: copiedIdentityId, copy: copyIdentityId } = useClipboard()
@@ -43,8 +48,8 @@ function ProfilePageContent() {
     const identityId = searchParams.get('identity_id')
     
     if (loginSuccess === 'success') {
-      toast.success('Login Successful', {
-        description: identityId ? `Welcome! Identity ID: ${identityId.substring(0, 8)}...` : 'You have successfully logged in.',
+      toast.success(tAuth('loginSuccessful'), {
+        description: identityId ? tAuth('welcome', { identityId: identityId.substring(0, 8) + '...' }) : tAuth('loginSuccessful'),
       })
       
       // Clean up URL parameters
@@ -64,9 +69,17 @@ function ProfilePageContent() {
     try {
       setIsLoading(true)
       const response = await fetch('/api/auth/session')
-      if (!response.ok) {
-        throw new Error('Failed to fetch session info')
+      
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Invalid response type')
       }
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch session info: ${response.status}`)
+      }
+      
       const data = await response.json()
       setSessionInfo(data)
       
@@ -78,8 +91,8 @@ function ProfilePageContent() {
       }
     } catch (error) {
       console.error('Error fetching session info:', error)
-      toast.error('Failed to load session information', {
-        description: error instanceof Error ? error.message : 'Unknown error',
+      toast.error(tErrors('failedToLoadSessionInformation'), {
+        description: error instanceof Error ? error.message : tErrors('unknownError'),
       })
     } finally {
       setIsLoading(false)
@@ -103,13 +116,13 @@ function ProfilePageContent() {
     return (
       <div className="max-w-4xl mx-auto">
         <PageHeader
-          title="Profile"
-          description="View your authentication session information"
+          title={t('title')}
+          description={t('description')}
         />
         <Card>
           <CardContent className="p-6">
             <p className="text-center text-tertiary">
-              Please log in to view your profile information.
+              {t('pleaseLogInToViewProfile')}
             </p>
           </CardContent>
         </Card>
@@ -118,7 +131,7 @@ function ProfilePageContent() {
   }
 
   // Prioritize sessionInfo from direct API call, fallback to useAuth()
-  const identityId = sessionInfo?.user?.identityId || user?.identityId || 'N/A'
+  const identityId = sessionInfo?.user?.identityId || user?.identityId || tCommon('n/a')
   const tokenPreview = sessionInfo?.tokenPreview
   const tokenPayload = sessionInfo?.tokenPayload
   const expiresAt = sessionInfo?.expiresAt
@@ -146,27 +159,27 @@ function ProfilePageContent() {
   return (
     <div className="max-w-4xl mx-auto">
       <PageHeader
-        title="Profile"
-        description="View your authentication session information"
+        title={t('title')}
+        description={t('description')}
       />
 
       <div className="space-y-6">
         {/* Identity Information */}
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-semibold text-secondary">Identity Information</h2>
+            <h2 className="text-lg font-semibold text-secondary">{t('identityInformation')}</h2>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-sm font-medium text-secondary">Identity ID</label>
+                <label className="text-sm font-medium text-secondary">{t('identityId')}</label>
                 <Button
                   color="tertiary"
                   size="sm"
                   onClick={() => copyIdentityId(identityId)}
                   iconLeading={copiedIdentityId ? Check : Copy01}
                 >
-                  {copiedIdentityId ? 'Copied' : 'Copy'}
+                  {copiedIdentityId ? tCommon('copied') : tCommon('copy')}
                 </Button>
               </div>
               <Input
@@ -176,7 +189,7 @@ function ProfilePageContent() {
                 inputClassName="font-mono text-sm"
               />
               <p className="mt-1.5 text-xs text-tertiary">
-                This is your unique identity identifier extracted from the access token.
+                {t('identityIdDescription')}
               </p>
             </div>
           </CardContent>
@@ -185,20 +198,20 @@ function ProfilePageContent() {
         {/* Token Information */}
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-semibold text-secondary">Access Token Information</h2>
+            <h2 className="text-lg font-semibold text-secondary">{t('accessTokenInformation')}</h2>
           </CardHeader>
           <CardContent className="space-y-4">
             {tokenPreview && (
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-sm font-medium text-secondary">Token Preview</label>
+                  <label className="text-sm font-medium text-secondary">{t('tokenPreview')}</label>
                   <Button
                     color="tertiary"
                     size="sm"
                     onClick={() => copyTokenPreview(`${tokenPreview.prefix}...${tokenPreview.suffix}`)}
                     iconLeading={copiedTokenPreview ? Check : Copy01}
                   >
-                    {copiedTokenPreview ? 'Copied' : 'Copy'}
+                    {copiedTokenPreview ? tCommon('copied') : tCommon('copy')}
                   </Button>
                 </div>
                 <Input
@@ -208,14 +221,14 @@ function ProfilePageContent() {
                   inputClassName="font-mono text-sm"
                 />
                 <p className="mt-1.5 text-xs text-tertiary">
-                  Token length: {tokenPreview.length} characters (full token is stored securely in session)
+                  {t('tokenLength', { length: tokenPreview.length })}
                 </p>
               </div>
             )}
 
             {expiresAt && (
               <div>
-                <label className="text-sm font-medium text-secondary mb-1.5 block">Expires At</label>
+                <label className="text-sm font-medium text-secondary mb-1.5 block">{t('expiresAt')}</label>
                 <Input
                   value={formatExpiration(expiresAt)}
                   onChange={() => {}}
@@ -226,7 +239,7 @@ function ProfilePageContent() {
 
             {expiresIn !== undefined && (
               <div>
-                <label className="text-sm font-medium text-secondary mb-1.5 block">Expires In</label>
+                <label className="text-sm font-medium text-secondary mb-1.5 block">{t('expiresIn')}</label>
                 <Input
                   value={formatExpiresIn(expiresIn)}
                   onChange={() => {}}
@@ -241,16 +254,16 @@ function ProfilePageContent() {
         {tokenPayload && (
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-semibold text-secondary">Token Payload (Decoded)</h2>
+              <h2 className="text-lg font-semibold text-secondary">{t('tokenPayload')}</h2>
             </CardHeader>
             <CardContent>
               <CodeSnippet
                 code={JSON.stringify(tokenPayload, null, 2)}
                 language="json"
-                title="JWT Payload"
+                title={t('jwtPayload')}
               />
               <p className="mt-2 text-xs text-tertiary">
-                This is the decoded payload from your access token. It contains claims like sub (identity ID), exp (expiration), etc.
+                {t('tokenPayloadDescription')}
               </p>
             </CardContent>
           </Card>
@@ -259,13 +272,13 @@ function ProfilePageContent() {
         {/* Session Status */}
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-semibold text-secondary">Session Status</h2>
+            <h2 className="text-lg font-semibold text-secondary">{t('sessionStatus')}</h2>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-success-solid" />
-                <span className="text-sm text-secondary">Authenticated</span>
+                <span className="text-sm text-secondary">{t('authenticated')}</span>
               </div>
               <Button
                 color="primary-destructive"
@@ -273,7 +286,7 @@ function ProfilePageContent() {
                 onClick={logout}
                 iconLeading={LogOut01}
               >
-                Sign Out
+                {tCommon('signOut')}
               </Button>
             </div>
           </CardContent>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { HydrationBoundary, useQuery, useMutation } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import { PageHeader } from '@/app/components/page-header'
 import { Button } from '@/components/base/buttons/button'
 import { Input } from '@/components/base/input/input'
@@ -54,6 +55,11 @@ export function OAuthAppsTokenPageClient({ dehydratedState, identityId: serverId
 function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string | null }) {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const { setBreadcrumbs } = useBreadcrumbs()
+  const t = useTranslations('tokenFlow')
+  const tCommon = useTranslations('common')
+  const tClients = useTranslations('clients')
+  const tAuth = useTranslations('auth')
+  const tNav = useTranslations('navigation')
   const [canManageGlobalClients, setCanManageGlobalClients] = useState(false)
   
   // Check access control via API
@@ -96,11 +102,11 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
   // Set breadcrumbs
   useEffect(() => {
     setBreadcrumbs([
-      { label: 'Flows', href: '/oauth-apps-token' },
-      { label: 'OAuth Apps Token Flow' },
+      { label: tNav('flows'), href: '/oauth-apps-token' },
+      { label: tNav('oauthAppsTokenFlow') },
     ])
     return () => setBreadcrumbs([])
-  }, [setBreadcrumbs])
+  }, [setBreadcrumbs, tNav])
 
   // Use identity ID from server (prefetched) or from session (fallback)
   const identityId = serverIdentityId || user?.identityId
@@ -112,7 +118,7 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
     queryFn: async () => {
       const response = await fetch('/api/clients')
       if (!response.ok) {
-        throw new Error('Failed to load global clients')
+        throw new Error(tClients('failedToLoadClients'))
       }
       const data = await response.json()
       return Array.isArray(data) ? data : []
@@ -126,7 +132,7 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
     queryFn: async () => {
       const response = await fetch(`/api/identity-clients`)
       if (!response.ok) {
-        throw new Error('Failed to load identity clients')
+        throw new Error(tClients('failedToLoadClients'))
       }
       const data = await response.json()
       return Array.isArray(data) ? data : []
@@ -139,7 +145,7 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
 
   const clientOptions = clients.map((client: Client) => ({
     id: client.client_id || client.id || '',
-    label: client.client_name || client.name || client.client_id || client.id || 'Unknown',
+    label: client.client_name || client.name || client.client_id || client.id || tCommon('n/a'),
   }))
 
   const selectedClient = clients.find(
@@ -159,7 +165,7 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
   const requestTokenMutation = useMutation({
     mutationFn: async () => {
       if (!selectedClientId || !clientSecret) {
-        throw new Error('Client ID and Client Secret are required')
+        throw new Error(t('clientRequired') + ' ' + t('clientSecretRequired'))
       }
 
       const response = await fetch('/api/oauth-apps/token', {
@@ -184,8 +190,8 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
     onSuccess: (data: TokenResponse) => {
       setTokenResponse(data)
       setApiResult(null) // Clear previous API test result
-      toast.success('Access Token Received', {
-        description: 'Successfully obtained access token using OAuth apps token flow.',
+      toast.success(t('accessTokenReceived'), {
+        description: t('accessTokenReceivedDescription'),
       })
       // Automatically test API after successful token retrieval
       if (data.access_token) {
@@ -195,7 +201,7 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
       }
     },
     onError: (err: Error) => {
-      toast.error('Failed to Get Token', {
+      toast.error(t('failedToGetToken'), {
         description: err.message,
       })
     },
@@ -203,15 +209,15 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
 
   const handleRequestToken = () => {
     if (!selectedClientId) {
-      toast.error('Client Required', {
-        description: 'Please select a client first.',
+      toast.error(t('clientRequired'), {
+        description: t('pleaseSelectClient'),
       })
       return
     }
 
     if (!clientSecret.trim()) {
-      toast.error('Client Secret Required', {
-        description: 'Please enter the client secret.',
+      toast.error(t('clientSecretRequired'), {
+        description: t('pleaseEnterClientSecret'),
       })
       return
     }
@@ -224,8 +230,8 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
   async function testApi(accessToken?: string) {
     const token = accessToken || tokenResponse?.access_token
     if (!token) {
-      toast.error('No Access Token', {
-        description: 'Cannot test API without an access token',
+      toast.error(t('noAccessToken'), {
+        description: t('cannotTestApiWithoutToken'),
       })
       return
     }
@@ -245,21 +251,21 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
       setApiResult(result)
 
       if (result.success) {
-        toast.success('API Test Successful', {
+        toast.success(t('apiTestSuccessful'), {
           description: `Status: ${result.status} ${result.statusText || ''}`,
         })
       } else {
-        toast.error('API Test Failed', {
+        toast.error(t('apiTestFailed'), {
           description: result.error || `Status: ${result.status} ${result.statusText || ''}`,
         })
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      const errorMessage = err instanceof Error ? err.message : tCommon('n/a')
       setApiResult({
         success: false,
         error: errorMessage,
       })
-      toast.error('API Test Error', {
+      toast.error(t('apiTestError'), {
         description: errorMessage,
       })
     } finally {
@@ -270,8 +276,8 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
   return (
     <div className="max-w-4xl">
       <PageHeader
-        title="OAuth Apps Token Flow"
-        description="Machine-to-machine OAuth 2.0 flow using UMS OAuth Apps token endpoint. No user interaction required."
+        title={t('title')}
+        description={t('description')}
       />
 
       <div className="space-y-6">
@@ -289,8 +295,8 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
             size="md" 
             fullWidth
             items={[
-              { id: 'identity', label: 'My OAuth Clients' },
-              ...(canManageGlobalClients ? [{ id: 'global', label: 'Global Clients' }] : []),
+              { id: 'identity', label: tClients('myOAuthClients') },
+              ...(canManageGlobalClients ? [{ id: 'global', label: tClients('globalClients') }] : []),
             ]}
           >
             {(item) => <Tabs.Item id={item.id}>{item.label}</Tabs.Item>}
@@ -300,7 +306,7 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
             <Tabs.Panel id="global" className="mt-6">
             {loadingGlobal ? (
               <div className="py-8">
-                <LoadingIndicator size="md" label="Loading global clients..." />
+                <LoadingIndicator size="md" label={t('loadingGlobalClients')} />
               </div>
             ) : globalClients.length === 0 ? (
               <div className="py-8">
@@ -309,9 +315,9 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
                     <EmptyState.Illustration type="box" />
                   </EmptyState.Header>
                   <EmptyState.Content>
-                    <EmptyState.Title>No global clients found</EmptyState.Title>
+                    <EmptyState.Title>{t('noGlobalClientsFound')}</EmptyState.Title>
                     <EmptyState.Description>
-                      Please create a client first before requesting a token.
+                      {t('createClientFirst')}
                     </EmptyState.Description>
                   </EmptyState.Content>
                 </EmptyState>
@@ -323,8 +329,8 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 gap-4">
                         <Select
-                          label="Client ID"
-                          placeholder="Select a client"
+                          label={tCommon('clientId')}
+                          placeholder={t('selectClient')}
                           selectedKey={selectedClientId}
                           onSelectionChange={(key) => setSelectedClientId(key as string)}
                           items={clientOptions}
@@ -335,13 +341,13 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
 
                         {selectedClientId && (
                           <Input
-                            label="Client Secret"
+                            label={t('clientSecret')}
                             type="password"
                             value={clientSecret}
                             onChange={(value: string) => setClientSecret(value)}
-                            placeholder="Enter client secret"
+                            placeholder={t('clientSecretPlaceholder')}
                             isRequired
-                            hint="Required for token request. 1Password and Apple Keychain supported."
+                            hint={t('clientSecretHint')}
                             autoComplete="current-password"
                             name="client_secret"
                             id="client_secret"
@@ -360,10 +366,10 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
                           {requestTokenMutation.isPending ? (
                             <span className="flex items-center gap-2">
                               <LoadingIndicator size="sm" />
-                              Requesting Token...
+                              {t('requestingToken')}
                             </span>
                           ) : (
-                            'Get Token'
+                            t('getToken')
                           )}
                         </Button>
                       </div>
@@ -378,7 +384,7 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
           <Tabs.Panel id="identity" className="mt-6">
             {authLoading ? (
               <div className="py-8">
-                <LoadingIndicator size="md" label="Checking authentication..." />
+                <LoadingIndicator size="md" label={tClients('checkingAuthentication')} />
               </div>
             ) : !isAuthenticated || !identityId ? (
               <div className="py-8">
@@ -387,16 +393,16 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
                     <EmptyState.Illustration type="box" />
                   </EmptyState.Header>
                   <EmptyState.Content>
-                    <EmptyState.Title>Authentication Required</EmptyState.Title>
+                    <EmptyState.Title>{tAuth('authenticationRequired')}</EmptyState.Title>
                     <EmptyState.Description>
-                      Please log in to view and use your OAuth clients.
+                      {t('pleaseLogInToUseClients')}
                     </EmptyState.Description>
                   </EmptyState.Content>
                 </EmptyState>
               </div>
             ) : loadingIdentity ? (
               <div className="py-8">
-                <LoadingIndicator size="md" label="Loading your OAuth clients..." />
+                <LoadingIndicator size="md" label={t('loadingYourOAuthClients')} />
               </div>
             ) : identityClients.length === 0 ? (
               <div className="py-8">
@@ -405,9 +411,9 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
                     <EmptyState.Illustration type="box" />
                   </EmptyState.Header>
                   <EmptyState.Content>
-                    <EmptyState.Title>No clients found</EmptyState.Title>
+                    <EmptyState.Title>{tClients('noClientsFound')}</EmptyState.Title>
                     <EmptyState.Description>
-                      No OAuth clients found. Please create a client first.
+                      {t('noClientsFoundCreateFirst')}
                     </EmptyState.Description>
                   </EmptyState.Content>
                 </EmptyState>
@@ -419,8 +425,8 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 gap-4">
                         <Select
-                          label="Client ID"
-                          placeholder="Select a client"
+                          label={tCommon('clientId')}
+                          placeholder={t('selectClient')}
                           selectedKey={selectedClientId}
                           onSelectionChange={(key) => setSelectedClientId(key as string)}
                           items={clientOptions}
@@ -431,13 +437,13 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
 
                         {selectedClientId && (
                           <Input
-                            label="Client Secret"
+                            label={t('clientSecret')}
                             type="password"
                             value={clientSecret}
                             onChange={(value: string) => setClientSecret(value)}
-                            placeholder="Enter client secret"
+                            placeholder={t('clientSecretPlaceholder')}
                             isRequired
-                            hint="Required for token request. 1Password and Apple Keychain supported."
+                            hint={t('clientSecretHint')}
                             autoComplete="current-password"
                             name="client_secret"
                             id="client_secret"
@@ -456,10 +462,10 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
                           {requestTokenMutation.isPending ? (
                             <span className="flex items-center gap-2">
                               <LoadingIndicator size="sm" />
-                              Requesting Token...
+                              {t('requestingToken')}
                             </span>
                           ) : (
-                            'Get Token'
+                            t('getToken')
                           )}
                         </Button>
                       </div>
@@ -475,31 +481,31 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
           <>
             <Card className="mt-6">
               <CardContent className="pt-6">
-                <h2 className="text-xl font-semibold mb-4">Token Response</h2>
+                <h2 className="text-xl font-semibold mb-4">{t('tokenResponse')}</h2>
                 <div className="space-y-4">
                   <div>
                     <label className="text-sm font-medium text-secondary mb-1 block">
-                      Access Token
+                      {t('accessToken')}
                     </label>
                     <CodeSnippet code={tokenResponse.access_token} language="text" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium text-secondary mb-1 block">
-                        Token Type
+                        {t('tokenType')}
                       </label>
                       <p className="text-primary">{tokenResponse.token_type}</p>
                     </div>
                     <div>
                       <label className="text-sm font-medium text-secondary mb-1 block">
-                        Expires In
+                        {t('expiresIn')}
                       </label>
-                      <p className="text-primary">{tokenResponse.expires_in} seconds</p>
+                      <p className="text-primary">{tokenResponse.expires_in} {t('seconds')}</p>
                     </div>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-secondary mb-1 block">
-                      Full Response
+                      {t('fullResponse')}
                     </label>
                     <CodeSnippet 
                       code={JSON.stringify(tokenResponse, null, 2)} 
@@ -514,7 +520,7 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
             <Card className="mt-6">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold">API Test</h2>
+                  <h2 className="text-xl font-semibold">{t('apiTest')}</h2>
                   <Button
                     color="primary"
                     size="md"
@@ -524,10 +530,10 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
                     {isTestingApi ? (
                       <span className="flex items-center gap-2">
                         <LoadingIndicator size="sm" />
-                        Testing...
+                        {t('testing')}
                       </span>
                     ) : (
-                      'Test API'
+                      t('testApi')
                     )}
                   </Button>
                 </div>
@@ -542,7 +548,7 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
                       <p className={`font-semibold mb-2 ${
                         apiResult.success ? 'text-success-primary' : 'text-error-primary'
                       }`}>
-                        {apiResult.success ? '✓ API Test Successful' : '❌ API Test Failed'}
+                        {apiResult.success ? t('apiTestSuccessful') : t('apiTestFailed')}
                       </p>
                       {apiResult.status && (
                         <p className="text-sm text-secondary mb-2">
@@ -556,7 +562,7 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
 
                     <div>
                       <label className="text-sm font-medium text-secondary mb-1 block">
-                        API Response
+                        {t('apiResponse')}
                       </label>
                       <CodeSnippet
                         code={JSON.stringify(

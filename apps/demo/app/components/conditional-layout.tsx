@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useMemo, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Users01 } from "@untitledui/icons";
 import { AppLayout } from "@/app/components/app-layout";
 import { useAuth } from "@/hooks/use-auth";
@@ -25,7 +26,17 @@ export function ConditionalLayout({ children, navigationItems }: ConditionalLayo
     useEffect(() => {
         if (isAuthenticated && user?.identityId) {
             fetch('/api/auth/access-control')
-                .then(res => res.json())
+                .then(async (res) => {
+                    // Check if response is JSON before parsing
+                    const contentType = res.headers.get('content-type')
+                    if (!contentType || !contentType.includes('application/json')) {
+                        throw new Error('Invalid response type')
+                    }
+                    if (!res.ok) {
+                        throw new Error(`HTTP error! status: ${res.status}`)
+                    }
+                    return res.json()
+                })
                 .then(data => {
                     setCanManageGlobalClients(data.canManageGlobalClients || false);
                 })
@@ -39,10 +50,11 @@ export function ConditionalLayout({ children, navigationItems }: ConditionalLayo
     }, [isAuthenticated, user?.identityId]);
 
     // Filter navigation items based on access control
+    // Note: Translation is handled in SidebarNavigationSectionsSubheadings component
     const filteredNavigationItems = useMemo(() => {
         return navigationItems.map(section => {
             // Add "Global Clients" to Clients section if user has access
-            if (section.label === "Clients" && canManageGlobalClients) {
+            if (section.label === "clients" && canManageGlobalClients) {
                 // Check if "Global Clients" already exists in the items
                 const hasGlobalClients = section.items.some(item => item.href === "/clients");
                 if (!hasGlobalClients) {
@@ -51,7 +63,7 @@ export function ConditionalLayout({ children, navigationItems }: ConditionalLayo
                         items: [
                             ...section.items,
                             {
-                                label: "Global Clients",
+                                label: "globalClients", // Translation key, will be translated in SidebarNavigationSectionsSubheadings
                                 href: "/clients",
                                 icon: Users01,
                             },
@@ -60,7 +72,7 @@ export function ConditionalLayout({ children, navigationItems }: ConditionalLayo
                 }
             }
             // Filter out "Global Clients" if user doesn't have access
-            if (section.label === "Clients" && !canManageGlobalClients) {
+            if (section.label === "clients" && !canManageGlobalClients) {
                 return {
                     ...section,
                     items: section.items.filter(item => item.href !== "/clients"),

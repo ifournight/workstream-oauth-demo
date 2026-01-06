@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { HydrationBoundary, useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/base/buttons/button'
 import { Card, CardContent } from '@/app/components/ui/card'
 import { Table, TableCard } from '@/components/application/table/table'
@@ -24,14 +25,6 @@ interface Client {
   owner_identity_id?: string
 }
 
-const columns = [
-  { id: 'client_id', name: 'Client ID' },
-  { id: 'name', name: 'Name' },
-  { id: 'grant_types', name: 'Grant Types' },
-  { id: 'scopes', name: 'Scopes' },
-  { id: 'actions', name: 'Actions' },
-] as const
-
 interface IdentityClientsPageClientProps {
   dehydratedState: DehydratedState
   identityId: string | null
@@ -50,6 +43,10 @@ function IdentityClientsContent({ identityId }: { identityId: string | null }) {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const { setBreadcrumbs } = useBreadcrumbs()
   const lastErrorRef = useRef<string | null>(null)
+  const t = useTranslations('clients')
+  const tCommon = useTranslations('common')
+  const tTable = useTranslations('table')
+  const tAuth = useTranslations('auth')
 
   // Use identity ID from props (from server) or from session (fallback)
   const currentIdentityId = identityId || user?.identityId
@@ -57,11 +54,19 @@ function IdentityClientsContent({ identityId }: { identityId: string | null }) {
   // Set breadcrumbs
   useEffect(() => {
     setBreadcrumbs([
-      { label: 'Clients', href: '/clients' },
-      { label: 'My OAuth Clients' },
+      { label: tCommon('clients'), href: '/clients' },
+      { label: t('myOAuthClients') },
     ])
     return () => setBreadcrumbs([])
-  }, [setBreadcrumbs])
+  }, [setBreadcrumbs, t, tCommon])
+
+  const columns = [
+    { id: 'client_id', name: tCommon('clientId') },
+    { id: 'name', name: tCommon('name') },
+    { id: 'grant_types', name: tTable('grantTypes') },
+    { id: 'scopes', name: tTable('scopes') },
+    { id: 'actions', name: tCommon('actions') },
+  ] as const
 
   // Fetch clients for current user's identity - this will use the prefetched data from SSR
   // Call Next.js API route which handles CORS and authentication
@@ -101,7 +106,7 @@ function IdentityClientsContent({ identityId }: { identityId: string | null }) {
       // Only show toast if this is a new error
       if (errorMessage !== lastErrorRef.current) {
         lastErrorRef.current = errorMessage
-        toast.error('Failed to Load Clients', {
+        toast.error(t('failedToLoadClients'), {
           description: errorMessage,
         })
       }
@@ -131,19 +136,19 @@ function IdentityClientsContent({ identityId }: { identityId: string | null }) {
     },
     onSuccess: (_: void, clientId: string) => {
       queryClient.invalidateQueries({ queryKey: ['identity-clients', currentIdentityId] })
-      toast.success('Client Deleted', {
-        description: `Client ${clientId} has been successfully deleted.`,
+      toast.success(t('clientDeleted'), {
+        description: t('clientSuccessfullyDeleted', { clientId }),
       })
     },
     onError: (err: Error) => {
-      toast.error('Failed to Delete Client', {
+      toast.error(t('failedToDeleteClient'), {
         description: err.message,
       })
     },
   })
 
   async function handleDelete(clientId: string) {
-    if (!confirm(`Are you sure you want to delete client ${clientId}?`)) {
+    if (!confirm(t('areYouSureDelete', { clientId }))) {
       return
     }
     deleteMutation.mutate(clientId)
@@ -151,8 +156,8 @@ function IdentityClientsContent({ identityId }: { identityId: string | null }) {
 
   function handleCreate() {
     if (!user?.identityId && !currentIdentityId) {
-      toast.error('Authentication Required', {
-        description: 'Please log in to create clients.',
+      toast.error(tAuth('authenticationRequired'), {
+        description: tAuth('pleaseLogIn'),
       })
       return
     }
@@ -163,12 +168,12 @@ function IdentityClientsContent({ identityId }: { identityId: string | null }) {
   return (
     <div className="max-w-7xl">
       <PageHeader
-        title="My OAuth Clients"
-        description="Manage your OAuth clients. Clients are automatically loaded based on your current session."
+        title={t('myOAuthClients')}
+        description={t('myOAuthClientsDescription')}
         singleRow
         actions={
           <Button color="primary" onClick={handleCreate}>
-            + Create Client
+            + {t('createClient')}
           </Button>
         }
       />
@@ -177,7 +182,7 @@ function IdentityClientsContent({ identityId }: { identityId: string | null }) {
         <Card>
           <CardContent>
             <div className="py-12">
-              <LoadingIndicator size="md" label="Checking authentication..." />
+              <LoadingIndicator size="md" label={t('checkingAuthentication')} />
             </div>
           </CardContent>
         </Card>
@@ -190,8 +195,8 @@ function IdentityClientsContent({ identityId }: { identityId: string | null }) {
                   <EmptyState.Illustration type="box" />
                 </EmptyState.Header>
                 <EmptyState.Content>
-                  <EmptyState.Title>Authentication Required</EmptyState.Title>
-                  <EmptyState.Description>Please log in to view and manage your OAuth clients.</EmptyState.Description>
+                  <EmptyState.Title>{tAuth('authenticationRequired')}</EmptyState.Title>
+                  <EmptyState.Description>{tAuth('pleaseLogInToView')}</EmptyState.Description>
                 </EmptyState.Content>
               </EmptyState>
             </div>
@@ -201,7 +206,7 @@ function IdentityClientsContent({ identityId }: { identityId: string | null }) {
         <Card>
           <CardContent>
             <div className="py-12">
-              <LoadingIndicator size="md" label="Loading clients..." />
+              <LoadingIndicator size="md" label={t('loadingClients')} />
             </div>
           </CardContent>
         </Card>
@@ -214,8 +219,8 @@ function IdentityClientsContent({ identityId }: { identityId: string | null }) {
                   <EmptyState.Illustration type="box" />
                 </EmptyState.Header>
                 <EmptyState.Content>
-                  <EmptyState.Title>No clients found</EmptyState.Title>
-                  <EmptyState.Description>No OAuth clients found. Create your first client!</EmptyState.Description>
+                  <EmptyState.Title>{t('noClientsFound')}</EmptyState.Title>
+                  <EmptyState.Description>{t('noOAuthClientsFound')}</EmptyState.Description>
                 </EmptyState.Content>
               </EmptyState>
             </div>
@@ -224,10 +229,10 @@ function IdentityClientsContent({ identityId }: { identityId: string | null }) {
       ) : (
         <TableCard.Root>
           <TableCard.Header
-            title="My OAuth Clients"
-            badge={`${clients.length} ${clients.length === 1 ? 'client' : 'clients'}`}
+            title={t('myOAuthClients')}
+            badge={t('clientCount', { count: clients.length })}
           />
-          <Table aria-label="My OAuth clients table">
+          <Table aria-label={t('myOAuthClients')}>
             <Table.Header columns={columns}>
               {(column) => <Table.Head>{column.name}</Table.Head>}
             </Table.Header>
@@ -236,10 +241,10 @@ function IdentityClientsContent({ identityId }: { identityId: string | null }) {
               {...({ getKey: (client: Client) => client.id || client.client_id || 'unknown' } as any)}
             >
               {(client: Client) => {
-                const clientId = client.client_id || client.id || 'N/A'
-                const clientName = client.client_name || client.name || 'N/A'
-                const grantTypes = (client.grant_types || []).join(', ') || 'N/A'
-                const scopes = client.scope || 'N/A'
+                const clientId = client.client_id || client.id || tCommon('n/a')
+                const clientName = client.client_name || client.name || tCommon('n/a')
+                const grantTypes = (client.grant_types || []).join(', ') || tCommon('n/a')
+                const scopes = client.scope || tCommon('n/a')
 
                 return (
                   <Table.Row columns={columns}>
@@ -262,7 +267,7 @@ function IdentityClientsContent({ identityId }: { identityId: string | null }) {
                             <Table.Cell>
                               <div className="flex gap-2">
                                 <Button color="secondary" size="sm" onClick={() => handleDelete(clientId)}>
-                                  Delete
+                                  {tCommon('delete')}
                                 </Button>
                               </div>
                             </Table.Cell>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import { Building05 } from '@untitledui/icons'
 import { Heading as AriaHeading } from 'react-aria-components'
 import { Button } from '@/components/base/buttons/button'
@@ -46,36 +47,37 @@ interface ClientFormData {
   metadata: string
 }
 
-const GRANT_TYPES = [
-  { id: 'authorization_code', label: 'Authorization Code' },
-  { id: 'client_credentials', label: 'Client Credentials' },
-  { id: 'refresh_token', label: 'Refresh Token' },
-  { id: 'urn:ietf:params:oauth:grant-type:device_code', label: 'Device Code' },
-  { id: 'implicit', label: 'Implicit' },
-  { id: 'password', label: 'Password' },
-]
+// These will be translated in the component using useTranslations
+const GRANT_TYPE_IDS = [
+  'authorization_code',
+  'client_credentials',
+  'refresh_token',
+  'urn:ietf:params:oauth:grant-type:device_code',
+  'implicit',
+  'password',
+] as const
 
-const RESPONSE_TYPES = [
-  { id: 'code', label: 'Code' },
-  { id: 'token', label: 'Token' },
-  { id: 'id_token', label: 'ID Token' },
-  { id: 'code token', label: 'Code Token' },
-  { id: 'code id_token', label: 'Code ID Token' },
-  { id: 'token id_token', label: 'Token ID Token' },
-  { id: 'code token id_token', label: 'Code Token ID Token' },
-]
+const RESPONSE_TYPE_IDS = [
+  'code',
+  'token',
+  'id_token',
+  'code token',
+  'code id_token',
+  'token id_token',
+  'code token id_token',
+] as const
 
-const TOKEN_ENDPOINT_AUTH_METHODS = [
-  { id: 'client_secret_post', label: 'Client Secret Post' },
-  { id: 'client_secret_basic', label: 'Client Secret Basic' },
-  { id: 'private_key_jwt', label: 'Private Key JWT' },
-  { id: 'none', label: 'None' },
-]
+const TOKEN_ENDPOINT_AUTH_METHOD_IDS = [
+  'client_secret_post',
+  'client_secret_basic',
+  'private_key_jwt',
+  'none',
+] as const
 
-const SUBJECT_TYPES = [
-  { id: 'public', label: 'Public' },
-  { id: 'pairwise', label: 'Pairwise' },
-]
+const SUBJECT_TYPE_IDS = [
+  'public',
+  'pairwise',
+] as const
 
 const SIGNING_ALGORITHMS = [
   { id: 'none', label: 'None' },
@@ -97,6 +99,53 @@ export default function CreateClientPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { setBreadcrumbs } = useBreadcrumbs()
+  const t = useTranslations('clients')
+  const tCommon = useTranslations('common')
+  const tForm = useTranslations('clientForm')
+  const tGrantTypes = useTranslations('grantTypes')
+  const tResponseTypes = useTranslations('responseTypes')
+  const tAuthMethods = useTranslations('authMethods')
+  const tSubjectTypes = useTranslations('subjectTypes')
+  
+  const getGrantTypeLabel = (id: string) => {
+    const keyMap: Record<string, string> = {
+      'authorization_code': 'authorizationCode',
+      'client_credentials': 'clientCredentials',
+      'refresh_token': 'refreshToken',
+      'urn:ietf:params:oauth:grant-type:device_code': 'deviceCode',
+      'implicit': 'implicit',
+      'password': 'password',
+    }
+    return tGrantTypes(keyMap[id] || id)
+  }
+  
+  const getResponseTypeLabel = (id: string) => {
+    const keyMap: Record<string, string> = {
+      'code': 'code',
+      'token': 'token',
+      'id_token': 'idToken',
+      'code token': 'codeToken',
+      'code id_token': 'codeIdToken',
+      'token id_token': 'tokenIdToken',
+      'code token id_token': 'codeTokenIdToken',
+    }
+    return tResponseTypes(keyMap[id] || id)
+  }
+  
+  const getAuthMethodLabel = (id: string) => {
+    const keyMap: Record<string, string> = {
+      'client_secret_post': 'clientSecretPost',
+      'client_secret_basic': 'clientSecretBasic',
+      'private_key_jwt': 'privateKeyJwt',
+      'none': 'none',
+    }
+    return tAuthMethods(keyMap[id] || id)
+  }
+  
+  const GRANT_TYPES = GRANT_TYPE_IDS.map(id => ({ id, label: getGrantTypeLabel(id) }))
+  const RESPONSE_TYPES = RESPONSE_TYPE_IDS.map(id => ({ id, label: getResponseTypeLabel(id) }))
+  const TOKEN_ENDPOINT_AUTH_METHODS = TOKEN_ENDPOINT_AUTH_METHOD_IDS.map(id => ({ id, label: getAuthMethodLabel(id) }))
+  const SUBJECT_TYPES = SUBJECT_TYPE_IDS.map(id => ({ id, label: tSubjectTypes(id) }))
   
   const [formData, setFormData] = useState<ClientFormData>({
     client_name: '',
@@ -128,11 +177,11 @@ export default function CreateClientPage() {
 
   useEffect(() => {
     setBreadcrumbs([
-      { label: 'Clients', href: '/clients' },
-      { label: 'Create Client' },
+      { label: tCommon('clients'), href: '/clients' },
+      { label: t('createClient') },
     ])
     return () => setBreadcrumbs([])
-  }, [setBreadcrumbs])
+  }, [setBreadcrumbs, t, tCommon])
 
   const createMutation = useMutation({
     mutationFn: async (clientData: any) => {
@@ -153,19 +202,19 @@ export default function CreateClientPage() {
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['clients'] })
       if (data.client_secret) {
-        toast.success('Client Created', {
-          description: `Client secret: ${data.client_secret}. Save this - it will not be shown again!`,
+        toast.success(t('clientCreated'), {
+          description: t('clientSecretSaved', { secret: data.client_secret }),
           duration: 10000,
         })
       } else {
-        toast.success('Client Created', {
-          description: 'Client has been successfully created.',
+        toast.success(t('clientCreated'), {
+          description: t('clientSuccessfullyCreated'),
         })
       }
       router.push('/clients')
     },
     onError: (err: Error) => {
-      toast.error('Failed to Create Client', {
+      toast.error(t('failedToCreateClient'), {
         description: err.message,
       })
     },
@@ -175,8 +224,8 @@ export default function CreateClientPage() {
     e?.preventDefault()
 
     if (!formData.client_name.trim()) {
-      toast.error('Client Name Required', {
-        description: 'Please enter a client name.',
+      toast.error(t('clientNameRequired'), {
+        description: t('pleaseEnterClientName'),
       })
       return
     }
@@ -236,8 +285,8 @@ export default function CreateClientPage() {
       try {
         clientData.metadata = JSON.parse(formData.metadata)
       } catch {
-        toast.error('Invalid JSON', {
-          description: 'Metadata must be valid JSON.',
+        toast.error(tForm('invalidJson'), {
+          description: tForm('metadataMustBeValidJson'),
         })
         return
       }
@@ -267,8 +316,8 @@ export default function CreateClientPage() {
   return (
     <div className="max-w-7xl">
       <PageHeader
-        title="Create Client"
-        description="Create a new OAuth client in Hydra."
+        title={t('createClient')}
+        description={t('createClientDescription')}
       />
 
       <Card>
@@ -279,10 +328,10 @@ export default function CreateClientPage() {
 
               <div className="z-10 flex flex-col gap-0.5">
                 <AriaHeading slot="title" className="text-md font-semibold text-primary">
-                  Client Configuration
+                  {tForm('clientConfiguration')}
                 </AriaHeading>
                 <p className="text-sm text-tertiary">
-                  Configure all OAuth client settings according to Hydra Client API specifications.
+                  {tForm('clientConfigurationDescription')}
                 </p>
               </div>
             </div>
@@ -290,28 +339,28 @@ export default function CreateClientPage() {
             <form onSubmit={handleSubmit} className="flex flex-col justify-start gap-6">
               {/* Basic Information */}
               <section className="space-y-6">
-                <h3 className="text-sm font-semibold text-primary">Basic Information</h3>
+                <h3 className="text-sm font-semibold text-primary">{tForm('basicInformation')}</h3>
                 
                 <section className="flex items-start gap-8">
-                  <Label className="w-40 max-sm:hidden">Client Name</Label>
+                  <Label className="w-40 max-sm:hidden">{tForm('clientName')}</Label>
                   <TextField name="client_name" className="flex-1" isRequired value={formData.client_name} onChange={(value) => setFormData({ ...formData, client_name: value || '' })}>
-                    <Label className="sm:hidden">Client Name</Label>
-                    <InputBase size="md" placeholder="e.g. My OAuth App" />
+                    <Label className="sm:hidden">{tForm('clientName')}</Label>
+                    <InputBase size="md" placeholder={tForm('clientNamePlaceholder')} />
                   </TextField>
                 </section>
 
                 <section className="flex items-start gap-8">
-                  <Label className="w-40 max-sm:hidden">Scope</Label>
+                  <Label className="w-40 max-sm:hidden">{tForm('scope')}</Label>
                   <TextField name="scope" className="flex-1" value={formData.scope} onChange={(value) => setFormData({ ...formData, scope: value || '' })}>
-                    <Label className="sm:hidden">Scope</Label>
-                    <InputBase size="md" placeholder="openid offline" />
+                    <Label className="sm:hidden">{tForm('scope')}</Label>
+                    <InputBase size="md" placeholder={tForm('scopePlaceholder')} />
                   </TextField>
                 </section>
               </section>
 
               {/* Grant Types */}
               <section className="space-y-4">
-                <h3 className="text-sm font-semibold text-primary">Grant Types</h3>
+                <h3 className="text-sm font-semibold text-primary">{tForm('grantTypes')}</h3>
                 <div className="flex flex-wrap gap-4">
                   {GRANT_TYPES.map((gt) => (
                     <Checkbox
@@ -326,7 +375,7 @@ export default function CreateClientPage() {
 
               {/* Response Types */}
               <section className="space-y-4">
-                <h3 className="text-sm font-semibold text-primary">Response Types</h3>
+                <h3 className="text-sm font-semibold text-primary">{tForm('responseTypes')}</h3>
                 <div className="flex flex-wrap gap-4">
                   {RESPONSE_TYPES.map((rt) => (
                     <Checkbox
@@ -341,43 +390,43 @@ export default function CreateClientPage() {
 
               {/* Redirect URIs */}
               <section className="flex items-start gap-8">
-                <Label className="w-40 max-sm:hidden">Redirect URIs</Label>
+                <Label className="w-40 max-sm:hidden">{tForm('redirectUris')}</Label>
                 <TextArea
                   name="redirect_uris"
                   className="flex-1"
                   value={formData.redirect_uris}
                   onChange={(value) => setFormData({ ...formData, redirect_uris: value || '' })}
-                  label="Redirect URIs (one per line)"
-                  placeholder="http://localhost:3000/api/auth/callback"
+                  label={tForm('redirectUrisLabel')}
+                  placeholder={tForm('redirectUrisPlaceholder')}
                   rows={3}
                 />
               </section>
 
               {/* Authentication */}
               <section className="space-y-6">
-                <h3 className="text-sm font-semibold text-primary">Authentication</h3>
+                <h3 className="text-sm font-semibold text-primary">{tForm('authentication')}</h3>
                 
                 <section className="flex items-start gap-8">
-                  <Label className="w-40 max-sm:hidden">Token Endpoint Auth Method</Label>
+                  <Label className="w-40 max-sm:hidden">{tForm('tokenEndpointAuthMethod')}</Label>
                   <Select
                     selectedKey={formData.token_endpoint_auth_method}
                     onSelectionChange={(key) => setFormData({ ...formData, token_endpoint_auth_method: key as string })}
                     items={TOKEN_ENDPOINT_AUTH_METHODS}
                     className="flex-1"
-                    label="Token Endpoint Auth Method"
+                    label={tForm('tokenEndpointAuthMethod')}
                   >
                     {(item) => <Select.Item id={item.id}>{item.label}</Select.Item>}
                   </Select>
                 </section>
 
                 <section className="flex items-start gap-8">
-                  <Label className="w-40 max-sm:hidden">Subject Type</Label>
+                  <Label className="w-40 max-sm:hidden">{tForm('subjectType')}</Label>
                   <Select
                     selectedKey={formData.subject_type}
                     onSelectionChange={(key) => setFormData({ ...formData, subject_type: key as string })}
                     items={SUBJECT_TYPES}
                     className="flex-1"
-                    label="Subject Type"
+                    label={tForm('subjectType')}
                   >
                     {(item) => <Select.Item id={item.id}>{item.label}</Select.Item>}
                   </Select>
@@ -386,7 +435,7 @@ export default function CreateClientPage() {
 
               {/* Advanced Settings */}
               <section className="space-y-6">
-                <h3 className="text-sm font-semibold text-primary">Advanced Settings</h3>
+                <h3 className="text-sm font-semibold text-primary">{tForm('advancedSettings')}</h3>
                 
                 <section className="flex items-start gap-8">
                   <Label className="w-40 max-sm:hidden">Audience</Label>
@@ -581,7 +630,7 @@ export default function CreateClientPage() {
                   type="button"
                   isDisabled={createMutation.isPending}
                 >
-                  Cancel
+                  {tCommon('cancel')}
                 </Button>
                 <Button 
                   color="primary" 
@@ -592,10 +641,10 @@ export default function CreateClientPage() {
                   {createMutation.isPending ? (
                     <span className="flex items-center gap-2">
                       <LoadingIndicator size="sm" />
-                      Creating...
+                      {t('creating')}
                     </span>
                   ) : (
-                    'Create Client'
+                    t('createClient')
                   )}
                 </Button>
               </div>

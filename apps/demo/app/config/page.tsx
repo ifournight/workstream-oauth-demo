@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { config } from '@/lib/config'
 import { Card, CardContent } from '@/app/components/ui/card'
 import { PageHeader } from '@/app/components/page-header'
@@ -8,42 +9,43 @@ import { useBreadcrumbs } from '@/lib/breadcrumbs'
 
 export default function ConfigPage() {
   const { setBreadcrumbs } = useBreadcrumbs()
+  const t = useTranslations()
 
   // Set breadcrumbs
   useEffect(() => {
     setBreadcrumbs([
-      { label: 'Settings', href: '/config' },
+      { label: t('config.title'), href: '/config' },
     ])
     return () => setBreadcrumbs([])
-  }, [setBreadcrumbs])
+  }, [setBreadcrumbs, t])
 
   return (
     <div className="max-w-4xl">
       <PageHeader
-        title="Settings"
-        description="View and manage OAuth 2.0 server configuration settings, including Hydra endpoints, client credentials, and environment variables."
+        title={t('config.title')}
+        description={t('config.description')}
       />
       <Card>
         <CardContent>
           <div className="prose prose-sm">
             <p>
-              <strong>Hydra Public URL:</strong>{' '}
+              <strong>{t('config.hydraPublicUrl')}:</strong>{' '}
               <code>{config.hydraPublicUrl}</code>
             </p>
             <p>
-              <strong>Client ID:</strong>{' '}
+              <strong>{t('config.clientId')}:</strong>{' '}
               <code>
-                {config.clientId || 'Not set (use env var)'}
+                {config.clientId || t('config.notSetUseEnvVar')}
               </code>
             </p>
             <p>
-              <strong>UMS Base URL:</strong>{' '}
+              <strong>{t('config.umsBaseUrl')}:</strong>{' '}
               <code>
-                {config.umsBaseUrl || 'Not set (use UMS_BASE_URL env var)'}
+                {config.umsBaseUrl || t('config.notSetUseUmsBaseUrl')}
               </code>
             </p>
             <p>
-              <strong>Port:</strong>{' '}
+              <strong>{t('config.port')}:</strong>{' '}
               <code>{config.port}</code>
             </p>
           </div>

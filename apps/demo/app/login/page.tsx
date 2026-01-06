@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/base/buttons/button'
 import { Input } from '@/components/base/input/input'
 import { Alert } from '@/components/ui/alert'
@@ -11,6 +12,7 @@ import { Key01, User01 } from '@untitledui/icons'
 function LoginPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const t = useTranslations()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -21,7 +23,7 @@ function LoginPageContent() {
     
     if (errorParam) {
       setError(errorDescription || errorParam)
-      toast.error('Login Failed', {
+      toast.error(t('auth.loginFailed'), {
         description: errorDescription || errorParam,
       })
     }
@@ -37,9 +39,9 @@ function LoginPageContent() {
       const loginUrl = `/api/auth/login?return_url=${encodeURIComponent(returnUrl)}`
       window.location.href = loginUrl
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to start login'
+      const errorMessage = err instanceof Error ? err.message : t('auth.failedToStartLogin')
       setError(errorMessage)
-      toast.error('Login Error', {
+      toast.error(t('auth.loginError'), {
         description: errorMessage,
       })
       setIsLoading(false)
@@ -57,9 +59,9 @@ function LoginPageContent() {
       const loginUrl = `/api/auth/login?return_url=${encodeURIComponent(returnUrl)}`
       window.location.href = loginUrl
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to start passkey login'
+      const errorMessage = err instanceof Error ? err.message : t('auth.failedToStartPasskeyLogin')
       setError(errorMessage)
-      toast.error('Passkey Login Error', {
+      toast.error(t('auth.passkeyLoginError'), {
         description: errorMessage,
       })
       setIsLoading(false)
@@ -71,10 +73,10 @@ function LoginPageContent() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Sign in to your account
+            {t('auth.signIn')}
           </h2>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Use your password or passkey to continue
+            {t('auth.signInDescription')}
           </p>
         </div>
 
@@ -96,7 +98,7 @@ function LoginPageContent() {
               iconLeading={User01}
               data-cy="login-button"
             >
-              Sign in with Password
+              {t('auth.signInWithPassword')}
             </Button>
 
             <div className="relative">
@@ -105,7 +107,7 @@ function LoginPageContent() {
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-                  Or continue with
+                  {t('auth.orContinueWith')}
                 </span>
               </div>
             </div>
@@ -120,13 +122,13 @@ function LoginPageContent() {
               iconLeading={Key01}
               data-cy="passkey-login-button"
             >
-              Sign in with Passkey
+              {t('auth.signInWithPasskey')}
             </Button>
           </div>
 
           <div className="text-center text-sm text-gray-600 dark:text-gray-400">
             <p>
-              By signing in, you agree to our terms of service and privacy policy.
+              {t('auth.termsAgreement')}
             </p>
           </div>
         </div>

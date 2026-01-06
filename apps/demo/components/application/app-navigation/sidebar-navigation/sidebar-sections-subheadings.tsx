@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { cx } from "@/utils/cx";
 import type { NavItemType } from "../config";
 import { NavItemBase } from "../base-components/nav-item";
@@ -16,7 +17,17 @@ interface SidebarNavigationSectionsSubheadingsProps {
 
 export const SidebarNavigationSectionsSubheadings = ({ activeUrl, items, className }: SidebarNavigationSectionsSubheadingsProps) => {
     const pathname = usePathname();
+    const t = useTranslations('navigation');
     const currentActiveUrl = activeUrl || pathname;
+
+    // Helper function to safely get translation
+    const getTranslation = (key: string, fallback: string) => {
+        try {
+            return t(key as any);
+        } catch {
+            return fallback;
+        }
+    };
 
     return (
         <nav className={cx("flex flex-col gap-6 px-2 lg:px-4", className)}>
@@ -25,7 +36,7 @@ export const SidebarNavigationSectionsSubheadings = ({ activeUrl, items, classNa
                     {/* Section Heading */}
                     <div className="px-3 pt-1.5 pb-1">
                         <h3 className="text-xs font-semibold uppercase tracking-wider text-tertiary">
-                            {section.label}
+                            {getTranslation(section.label, section.label)}
                         </h3>
                     </div>
 
@@ -42,7 +53,7 @@ export const SidebarNavigationSectionsSubheadings = ({ activeUrl, items, classNa
                                         type="link"
                                         current={isActive}
                                     >
-                                        {item.label}
+                                        {getTranslation(item.label, item.label)}
                                     </NavItemBase>
                                 </li>
                             );

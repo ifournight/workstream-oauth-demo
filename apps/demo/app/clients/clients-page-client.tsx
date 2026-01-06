@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { HydrationBoundary, useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/base/buttons/button'
 import { Card, CardContent } from '@/app/components/ui/card'
 import { Table, TableCard } from '@/components/application/table/table'
@@ -23,14 +24,6 @@ interface Client {
   redirect_uris?: string[]
 }
 
-const columns = [
-  { id: 'client_id', name: 'Client ID' },
-  { id: 'name', name: 'Name' },
-  { id: 'grant_types', name: 'Grant Types' },
-  { id: 'scopes', name: 'Scopes' },
-  { id: 'actions', name: 'Actions' },
-] as const
-
 interface ClientsPageClientProps {
   dehydratedState: DehydratedState
 }
@@ -47,15 +40,26 @@ function ClientsContent() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { setBreadcrumbs } = useBreadcrumbs()
+  const t = useTranslations('clients')
+  const tCommon = useTranslations('common')
+  const tTable = useTranslations('table')
 
   // Set breadcrumbs
   useEffect(() => {
     setBreadcrumbs([
-      { label: 'Clients', href: '/clients' },
-      { label: 'Global Clients' },
+      { label: tCommon('clients'), href: '/clients' },
+      { label: t('globalClients') },
     ])
     return () => setBreadcrumbs([])
-  }, [setBreadcrumbs])
+  }, [setBreadcrumbs, t, tCommon])
+
+  const columns = [
+    { id: 'client_id', name: tCommon('clientId') },
+    { id: 'name', name: tCommon('name') },
+    { id: 'grant_types', name: tTable('grantTypes') },
+    { id: 'scopes', name: tTable('scopes') },
+    { id: 'actions', name: tCommon('actions') },
+  ] as const
 
   // Fetch clients - this will use the prefetched data from SSR
   const { data: clientsData, isLoading: loading, error } = useQuery({
@@ -76,8 +80,8 @@ function ClientsContent() {
         : []
       
       if (clientsWithId.length > 0) {
-        toast.success('Clients Loaded', {
-          description: `Successfully loaded ${clientsWithId.length} client${clientsWithId.length === 1 ? '' : 's'}.`,
+        toast.success(t('clientsLoaded'), {
+          description: t('successfullyLoadedClients', { count: clientsWithId.length }),
         })
       }
       
@@ -101,19 +105,19 @@ function ClientsContent() {
     },
     onSuccess: (_: void, clientId: string) => {
       queryClient.invalidateQueries({ queryKey: ['clients'] })
-      toast.success('Client Deleted', {
-        description: `Client ${clientId} has been successfully deleted.`,
+      toast.success(t('clientDeleted'), {
+        description: t('clientSuccessfullyDeleted', { clientId }),
       })
     },
     onError: (err: Error) => {
-      toast.error('Failed to Delete Client', {
+      toast.error(t('failedToDeleteClient'), {
         description: err.message,
       })
     },
   })
 
   async function handleDelete(clientId: string) {
-    if (!confirm(`Are you sure you want to delete client ${clientId}?`)) {
+    if (!confirm(t('areYouSureDelete', { clientId }))) {
       return
     }
     deleteMutation.mutate(clientId)
@@ -133,11 +137,11 @@ function ClientsContent() {
   return (
     <div className="max-w-7xl">
       <PageHeader
-        title="Global Clients"
-        description="Manage all OAuth clients in Hydra without identity filtering. View, create, edit, and delete clients across all identities."
+        title={t('globalClients')}
+        description={t('globalClientsDescription')}
         actions={
           <Button color="primary" onClick={handleCreate}>
-            + Create Client
+            + {t('createClient')}
           </Button>
         }
       />
@@ -146,7 +150,7 @@ function ClientsContent() {
         <Card>
           <CardContent>
             <div className="py-12">
-              <LoadingIndicator size="md" label="Loading clients..." />
+              <LoadingIndicator size="md" label={t('loadingClients')} />
             </div>
           </CardContent>
         </Card>
@@ -159,12 +163,12 @@ function ClientsContent() {
                   <EmptyState.Illustration type="box" />
                 </EmptyState.Header>
                 <EmptyState.Content>
-                  <EmptyState.Title>No clients found</EmptyState.Title>
-                  <EmptyState.Description>Create your first client to get started.</EmptyState.Description>
+                  <EmptyState.Title>{t('noClientsFound')}</EmptyState.Title>
+                  <EmptyState.Description>{t('createFirstClient')}</EmptyState.Description>
                 </EmptyState.Content>
                 <EmptyState.Footer>
                   <Button color="primary" onClick={handleCreate}>
-                    + Create Client
+                    + {t('createClient')}
                   </Button>
                 </EmptyState.Footer>
               </EmptyState>
@@ -174,10 +178,10 @@ function ClientsContent() {
       ) : (
         <TableCard.Root>
           <TableCard.Header
-            title="Clients"
-            badge={`${clients.length} ${clients.length === 1 ? 'client' : 'clients'}`}
+            title={tCommon('clients')}
+            badge={t('clientCount', { count: clients.length })}
           />
-          <Table aria-label="Clients table">
+          <Table aria-label={tCommon('clients')}>
             <Table.Header columns={columns}>
               {(column) => <Table.Head>{column.name}</Table.Head>}
             </Table.Header>
@@ -186,10 +190,10 @@ function ClientsContent() {
               {...({ getKey: (client: Client) => client.id || client.client_id || 'unknown' } as any)}
             >
               {(client: Client) => {
-                const clientId = client.client_id || client.id || 'N/A'
-                const clientName = client.client_name || client.name || 'N/A'
-                const grantTypes = (client.grant_types || []).join(', ') || 'N/A'
-                const scopes = client.scope || 'N/A'
+                const clientId = client.client_id || client.id || tCommon('n/a')
+                const clientName = client.client_name || client.name || tCommon('n/a')
+                const grantTypes = (client.grant_types || []).join(', ') || tCommon('n/a')
+                const scopes = client.scope || tCommon('n/a')
 
                 return (
                   <Table.Row columns={columns}>
@@ -212,10 +216,10 @@ function ClientsContent() {
                             <Table.Cell>
                               <div className="flex gap-2">
                                 <Button color="secondary" size="sm" onClick={() => handleEdit(client)}>
-                                  Edit
+                                  {tCommon('edit')}
                                 </Button>
                                 <Button color="secondary" size="sm" onClick={() => handleDelete(clientId)}>
-                                  Delete
+                                  {tCommon('delete')}
                                 </Button>
                               </div>
                             </Table.Cell>

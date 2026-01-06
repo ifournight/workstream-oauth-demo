@@ -2,8 +2,10 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import { ThemeToggle } from "@/app/components/theme-toggle";
+import { LocaleSwitcher } from "@/app/components/locale-switcher";
 import { Avatar } from "@/components/base/avatar/avatar";
 import { Dropdown } from "@/components/base/dropdown/dropdown";
 import { Button } from "@/components/base/buttons/button";
@@ -15,6 +17,7 @@ export function HeaderBar() {
     const { breadcrumbs } = useBreadcrumbs();
     const { user, isAuthenticated, logout } = useAuth();
     const router = useRouter();
+    const t = useTranslations('common');
 
     // Get user initials for avatar
     const getUserInitials = () => {
@@ -42,8 +45,9 @@ export function HeaderBar() {
                 )}
             </div>
 
-            {/* Right: Theme Toggle + User Menu */}
+            {/* Right: Locale Switcher + Theme Toggle + User Menu */}
             <div className="flex items-center gap-3">
+                <LocaleSwitcher noBorder />
                 <ThemeToggle iconOnly />
                 
                 {isAuthenticated && user && (
@@ -63,13 +67,13 @@ export function HeaderBar() {
                         <Dropdown.Popover>
                             <Dropdown.Menu>
                                 <Dropdown.Item
-                                    label="Profile"
+                                    label={t('profile')}
                                     icon={User01}
                                     onAction={() => router.push('/profile')}
                                 />
                                 <Dropdown.Separator />
                                 <Dropdown.Item
-                                    label="Sign Out"
+                                    label={t('signOut')}
                                     icon={LogOut01}
                                     onAction={logout}
                                 />
