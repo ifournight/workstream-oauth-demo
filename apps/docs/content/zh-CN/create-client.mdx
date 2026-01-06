@@ -11,7 +11,7 @@
 
 ### 步骤 1: 访问演示应用程序
 
-导航到演示应用程序 URL（例如：`https://your-demo-app.vercel.app`）。
+导航到演示应用程序 URL：<EnvVar name="DEMO_URL" />
 
 ### 步骤 2: 登录
 
@@ -39,24 +39,6 @@
 
 **⚠️ 重要提示**：客户端密钥只显示一次。请确保立即复制并安全存储 `client_id` 和 `client_secret`。
 
-## 响应格式
-
-API 返回具有以下结构的 JSON 响应：
-
-```json
-{
-  "client_id": "your-client-id",
-  "client_secret": "your-client-secret",
-  "client_name": "我的 OAuth 应用",
-  "grant_types": ["client_credentials"],
-  "response_types": ["code"],
-  "scope": "openid offline",
-  "redirect_uris": [],
-  "token_endpoint_auth_method": "client_secret_post",
-  "owner_identity_id": "your-identity-id"
-}
-```
-
 ## 下一步
 
 获得客户端凭据后，您可以：
@@ -69,4 +51,3 @@ API 返回具有以下结构的 JSON 响应：
 - 每个客户端都绑定到您的身份（用户账户）
 - 您可以为不同的应用程序创建多个客户端
 - 如果丢失，客户端密钥无法稍后检索 - 请安全存储
-- 当前使用 UMS API - 将来将替换为公共 API

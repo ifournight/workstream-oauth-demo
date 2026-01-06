@@ -1,85 +1,44 @@
 # API Reference
 
-## Client Credentials Token Endpoint
+## Authentication
 
-### POST /api/client-credentials/token
+After obtaining an access token (see [How to Get an Access Token](./get-token)), you can use it to authenticate requests to Workstream's public API using Bearer token authentication.
 
-Exchange client credentials for an access token.
+### Bearer Token Authentication
 
-**Base URL**: `https://your-demo-app.vercel.app`
-
-**Endpoint**: `/api/client-credentials/token`
-
-**Method**: `POST`
-
-**Content-Type**: `application/json`
-
-#### Request Body
-
-```json
-{
-  "client_id": "string (required)",
-  "client_secret": "string (required)"
-}
-```
-
-#### Success Response (200 OK)
-
-```json
-{
-  "access_token": "string",
-  "token_type": "Bearer",
-  "expires_in": 3600,
-  "scope": "string"
-}
-```
-
-#### Error Responses
-
-**400 Bad Request** - Missing required parameters
-```json
-{
-  "error": "client_id is required"
-}
-```
-
-**401 Unauthorized** - Invalid client credentials
-```json
-{
-  "error": "invalid_client",
-  "error_description": "Client authentication failed"
-}
-```
-
-**500 Internal Server Error** - Server configuration issue
-```json
-{
-  "error": "UMS_BASE_URL not configured. Please set it as an environment variable."
-}
-```
-
-#### Example Request
-
-```bash
-curl -X POST https://your-demo-app.vercel.app/api/client-credentials/token \
-  -H "Content-Type: application/json" \
-  -d '{
-    "client_id": "your-client-id",
-    "client_secret": "your-client-secret"
-  }'
-```
-
-#### Using the Access Token
-
-Include the access token in the `Authorization` header:
+Include the access token in the `Authorization` header of your API requests:
 
 ```
 Authorization: Bearer <access_token>
 ```
 
+### Example Request
+
+```javascript
+const response = await fetch('https://api.example.com/protected-resource', {
+  headers: {
+    'Authorization': `Bearer ${accessToken}`,
+    'Content-Type': 'application/json',
+  },
+});
+```
+
+## Public API Documentation
+
+For complete API documentation, including all available endpoints, request/response formats, and authentication details, please refer to the Workstream Public API documentation:
+
+**Public API URL**: <EnvVar name="PUBLIC_API_URL" asLink={true} />
+
+Visit the Public API documentation to explore:
+- Available endpoints and resources
+- Request and response schemas
+- Authentication requirements
+- Rate limits and usage guidelines
+- Code examples and SDKs
+
 ## Notes
 
-- This endpoint uses the UMS API internally
-- Will be replaced with a public API in the future
-- Tokens typically expire after 3600 seconds (1 hour)
-- Store tokens securely and refresh before expiration
+- Access tokens are JWT tokens that expire after a certain period (typically 3600 seconds / 1 hour)
+- Always use HTTPS when making API requests
+- Store tokens securely and refresh them before expiration
+- Handle 401 Unauthorized responses by obtaining a new token

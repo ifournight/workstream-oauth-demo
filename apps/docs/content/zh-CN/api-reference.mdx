@@ -1,86 +1,44 @@
 # API 参考
 
-## 客户端凭据令牌端点
+## 身份验证
 
-### POST /api/client-credentials/token
+获得访问令牌后（参见[如何获取访问令牌](./get-token)），您可以使用它通过 Bearer token 身份验证向 Workstream 的公共 API 发送请求。
 
-使用客户端凭据交换访问令牌。
+### Bearer Token 身份验证
 
-**基础 URL**: `https://your-demo-app.vercel.app`
-
-**端点**: `/api/client-credentials/token`
-
-**方法**: `POST`
-
-**Content-Type**: `application/json`
-
-#### 请求体
-
-```json
-{
-  "client_id": "string (必需)",
-  "client_secret": "string (必需)"
-}
-```
-
-#### 成功响应 (200 OK)
-
-```json
-{
-  "access_token": "string",
-  "token_type": "Bearer",
-  "expires_in": 3600,
-  "scope": "string"
-}
-```
-
-#### 错误响应
-
-**400 Bad Request** - 缺少必需参数
-```json
-{
-  "error": "client_id is required"
-}
-```
-
-**401 Unauthorized** - 无效的客户端凭据
-```json
-{
-  "error": "invalid_client",
-  "error_description": "Client authentication failed"
-}
-```
-
-**500 Internal Server Error** - 服务器配置问题
-```json
-{
-  "error": "UMS_BASE_URL not configured. Please set it as an environment variable."
-}
-```
-
-#### 请求示例
-
-```bash
-curl -X POST https://your-demo-app.vercel.app/api/client-credentials/token \
-  -H "Content-Type: application/json" \
-  -d '{
-    "client_id": "your-client-id",
-    "client_secret": "your-client-secret"
-  }'
-```
-
-#### 使用访问令牌
-
-在 `Authorization` 请求头中包含访问令牌：
+在 API 请求的 `Authorization` 请求头中包含访问令牌：
 
 ```
 Authorization: Bearer <access_token>
 ```
 
+### 请求示例
+
+```javascript
+const response = await fetch('https://api.example.com/protected-resource', {
+  headers: {
+    'Authorization': `Bearer ${accessToken}`,
+    'Content-Type': 'application/json',
+  },
+});
+```
+
+## 公共 API 文档
+
+有关完整的 API 文档，包括所有可用的端点、请求/响应格式和身份验证详细信息，请参阅 Workstream 公共 API 文档：
+
+**公共 API URL**: <EnvVar name="PUBLIC_API_URL" asLink={true} />
+
+访问公共 API 文档以了解：
+- 可用的端点和资源
+- 请求和响应模式
+- 身份验证要求
+- 速率限制和使用指南
+- 代码示例和 SDK
+
 ## 注意事项
 
-- 此端点内部使用 UMS API
-- 将来将替换为公共 API
-- 令牌通常在 3600 秒（1 小时）后过期
-- 安全存储令牌并在过期前刷新
-
+- 访问令牌是 JWT 令牌，在特定时间后过期（通常为 3600 秒 / 1 小时）
+- 进行 API 请求时始终使用 HTTPS
+- 安全存储令牌并在过期前刷新它们
+- 通过获取新令牌来处理 401 未授权响应
