@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import { ThemeToggle } from "@/app/components/theme-toggle";
@@ -70,38 +69,10 @@ export function HeaderBar() {
                                 />
                                 <Dropdown.Separator />
                                 <Dropdown.Item
-                                    unstyled
+                                    label="Sign Out"
+                                    icon={LogOut01}
                                     onAction={logout}
-                                    className="group block cursor-pointer px-1.5 py-px outline-hidden"
-                                >
-                                    {(state) => (
-                                        <div
-                                            className={`relative flex items-center rounded-md px-2.5 py-2 outline-focus-ring transition duration-100 ease-linear ${
-                                                state.isFocused || state.isHovered
-                                                    ? "bg-destructive_hover"
-                                                    : ""
-                                            }`}
-                                        >
-                                            <LogOut01
-                                                aria-hidden="true"
-                                                className={`mr-2 size-4 shrink-0 stroke-[2.25px] ${
-                                                    state.isDisabled
-                                                        ? "text-fg-disabled"
-                                                        : "text-destructive"
-                                                }`}
-                                            />
-                                            <span
-                                                className={`grow truncate text-sm font-semibold ${
-                                                    state.isDisabled
-                                                        ? "text-disabled"
-                                                        : "text-destructive"
-                                                }`}
-                                            >
-                                                Sign Out
-                                            </span>
-                                        </div>
-                                    )}
-                                </Dropdown.Item>
+                                />
                             </Dropdown.Menu>
                         </Dropdown.Popover>
                     </Dropdown.Root>

@@ -34,7 +34,7 @@ interface DropdownItemProps extends AriaMenuItemProps {
 
 const DropdownItem = ({ label, children, addon, icon: Icon, unstyled, ...props }: DropdownItemProps) => {
     if (unstyled) {
-        return <AriaMenuItem id={label} textValue={label} {...props} />;
+        return <AriaMenuItem id={label} textValue={label} {...props}>{children}</AriaMenuItem>;
     }
 
     return (
