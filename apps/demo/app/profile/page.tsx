@@ -268,7 +268,7 @@ function ProfilePageContent() {
                 <span className="text-sm text-secondary">Authenticated</span>
               </div>
               <Button
-                color="destructive"
+                color="primary-destructive"
                 size="sm"
                 onClick={logout}
                 iconLeading={LogOut01}
