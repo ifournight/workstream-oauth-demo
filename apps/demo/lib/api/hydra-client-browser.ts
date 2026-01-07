@@ -9,6 +9,25 @@
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios'
 
 /**
+ * Validate and normalize baseURL to ensure it's a valid URL
+ * This prevents axios from using deprecated url.parse()
+ */
+function normalizeBaseUrl(url: string): string {
+  if (!url) {
+    return ''
+  }
+  
+  try {
+    // Use WHATWG URL API to validate and normalize the URL
+    const urlObj = new URL(url)
+    return urlObj.toString().replace(/\/$/, '') // Remove trailing slash
+  } catch {
+    // If URL is invalid, return as-is (axios will handle the error)
+    return url
+  }
+}
+
+/**
  * Get Hydra Admin URL for client-side use
  * Uses NEXT_PUBLIC_HYDRA_ADMIN_URL environment variable
  */
@@ -22,7 +41,7 @@ function getHydraAdminUrl(): string {
     throw new Error('NEXT_PUBLIC_HYDRA_ADMIN_URL environment variable is not set')
   }
   
-  return url
+  return normalizeBaseUrl(url)
 }
 
 /**

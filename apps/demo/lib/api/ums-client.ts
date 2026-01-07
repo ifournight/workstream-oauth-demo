@@ -2,11 +2,30 @@ import axios, { AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } 
 import { config } from '@/lib/config'
 
 /**
+ * Validate and normalize baseURL to ensure it's a valid URL
+ * This prevents axios from using deprecated url.parse()
+ */
+function normalizeBaseUrl(url: string): string {
+  if (!url) {
+    return ''
+  }
+  
+  try {
+    // Use WHATWG URL API to validate and normalize the URL
+    const urlObj = new URL(url)
+    return urlObj.toString().replace(/\/$/, '') // Remove trailing slash
+  } catch {
+    // If URL is invalid, return as-is (axios will handle the error)
+    return url
+  }
+}
+
+/**
  * UMS API client instance
  * Configured with baseURL from environment config
  */
 export const umsClient = axios.create({
-  baseURL: config.umsBaseUrl,
+  baseURL: normalizeBaseUrl(config.umsBaseUrl),
   headers: {
     'Content-Type': 'application/json',
   },

@@ -193,7 +193,11 @@ function ClientsContent() {
           />
           <Table aria-label={tCommon('clients')}>
             <Table.Header columns={columns}>
-              {(column) => <Table.Head>{column.name}</Table.Head>}
+              {(column) => (
+                <Table.Head isRowHeader={column.id === 'client_id'}>
+                  {column.name}
+                </Table.Head>
+              )}
             </Table.Header>
             <Table.Body 
               items={clients}
@@ -211,7 +215,7 @@ function ClientsContent() {
                       switch (column.id) {
                         case 'client_id':
                           return (
-                            <Table.Cell>
+                            <Table.Cell isRowHeader>
                               <code className="bg-secondary px-2 py-1 rounded text-sm">{clientId}</code>
                             </Table.Cell>
                           )

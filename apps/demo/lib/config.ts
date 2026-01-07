@@ -112,8 +112,6 @@ export function getBaseUrl(request?: { url?: string; headers?: Headers }): strin
           }
           
           return baseUrl;
-          
-          return baseUrl;
         }
       }
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import { Building05 } from '@untitledui/icons'
 import { Heading as AriaHeading } from 'react-aria-components'
 import { Button } from '@/components/base/buttons/button'
@@ -20,6 +21,10 @@ export default function CreateIdentityClientPage() {
   const router = useRouter()
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const { setBreadcrumbs } = useBreadcrumbs()
+  const t = useTranslations('clients')
+  const tCommon = useTranslations('common')
+  const tAuth = useTranslations('auth')
+  const tForm = useTranslations('clientForm')
   const identityId = user?.identityId || ''
   const [formData, setFormData] = useState({
     client_name: '',
@@ -28,12 +33,12 @@ export default function CreateIdentityClientPage() {
   // Set breadcrumbs
   useEffect(() => {
     setBreadcrumbs([
-      { label: 'Clients', href: '/clients' },
-      { label: 'My OAuth Clients', href: '/identity-clients' },
-      { label: 'Create Client' },
+      { label: tCommon('clients'), href: '/clients' },
+      { label: t('myOAuthClients'), href: '/identity-clients' },
+      { label: t('createClient') },
     ])
     return () => setBreadcrumbs([])
-  }, [setBreadcrumbs])
+  }, [setBreadcrumbs, t, tCommon])
 
   const createMutation = useMutation({
     mutationFn: async (clientData: {
@@ -157,7 +162,7 @@ export default function CreateIdentityClientPage() {
         description += `\n\nDetails:\n${detailsStr}`
       }
       
-      toast.error('Failed to Create Client', {
+      toast.error(t('failedToCreateClient'), {
         description: description,
         duration: 20000, // Increased duration to allow reading all debug info
       })
@@ -168,15 +173,15 @@ export default function CreateIdentityClientPage() {
     e?.preventDefault()
 
     if (!identityId.trim()) {
-      toast.error('Identity ID Required', {
-        description: 'Please provide an identity ID.',
+      toast.error(tAuth('authenticationRequired'), {
+        description: tAuth('pleaseLogIn'),
       })
       return
     }
 
     if (!formData.client_name.trim()) {
-      toast.error('Client Name Required', {
-        description: 'Please enter a client name.',
+      toast.error(t('clientNameRequired'), {
+        description: t('pleaseEnterClientName'),
       })
       return
     }
@@ -194,12 +199,12 @@ export default function CreateIdentityClientPage() {
     return (
       <div className="max-w-7xl">
         <PageHeader
-          title="Create Identity Client"
+          title={t('createIdentityClient')}
         />
         <Card>
           <CardContent>
             <div className="py-12">
-              <LoadingIndicator size="md" label="Loading..." />
+              <LoadingIndicator size="md" label={tCommon('loading')} />
             </div>
           </CardContent>
         </Card>
@@ -212,15 +217,15 @@ export default function CreateIdentityClientPage() {
     return (
       <div className="max-w-7xl">
         <PageHeader
-          title="Create Identity Client"
+          title={t('createIdentityClient')}
         />
         <Card>
           <CardContent>
             <div className="py-12">
-              <p className="text-center text-tertiary">Authentication required. Please log in to create clients.</p>
+              <p className="text-center text-tertiary">{tAuth('pleaseLogIn')}</p>
               <div className="mt-4 flex justify-center">
                 <Button color="primary" onClick={() => router.push('/login')}>
-                  Go to Login
+                  {tAuth('signIn')}
                 </Button>
               </div>
             </div>
@@ -233,8 +238,8 @@ export default function CreateIdentityClientPage() {
   return (
     <div className="max-w-7xl">
       <PageHeader
-        title="Create Identity Client"
-        description="Create a new OAuth client for this identity."
+        title={t('createIdentityClient')}
+        description={t('createIdentityClientDescription')}
       />
 
       <Card>
@@ -245,24 +250,24 @@ export default function CreateIdentityClientPage() {
 
               <div className="z-10 flex flex-col gap-0.5">
                 <AriaHeading slot="title" className="text-md font-semibold text-primary">
-                  Add Identity Client
+                  {t('addIdentityClient')}
                 </AriaHeading>
                 <p className="text-sm text-tertiary">
-                  Create a new OAuth client for this identity.
+                  {t('createIdentityClientDescription')}
                 </p>
               </div>
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col justify-start gap-6">
               <section className="flex items-start gap-8">
-                <Label className="w-40 max-sm:hidden">Owner Identity ID</Label>
+                <Label className="w-40 max-sm:hidden">{t('ownerIdentityId')}</Label>
                 <TextField name="identityId" className="flex-1" isDisabled>
-                  <Label className="sm:hidden">Owner Identity ID</Label>
+                  <Label className="sm:hidden">{t('ownerIdentityId')}</Label>
                   <InputBase size="md" value={identityId} />
                 </TextField>
               </section>
               <section className="flex items-start gap-8">
-                <Label className="w-40 max-sm:hidden">Client Name</Label>
+                <Label className="w-40 max-sm:hidden">{tForm('clientName')}</Label>
                 <TextField 
                   name="client_name" 
                   className="flex-1" 
@@ -270,10 +275,10 @@ export default function CreateIdentityClientPage() {
                   value={formData.client_name}
                   onChange={(value) => setFormData({ ...formData, client_name: value || '' })}
                 >
-                  <Label className="sm:hidden">Client Name</Label>
+                  <Label className="sm:hidden">{tForm('clientName')}</Label>
                   <InputBase 
                     size="md" 
-                    placeholder="e.g. My OAuth App"
+                    placeholder={tForm('clientNamePlaceholder')}
                   />
                 </TextField>
               </section>
@@ -285,7 +290,7 @@ export default function CreateIdentityClientPage() {
                   type="button"
                   isDisabled={createMutation.isPending}
                 >
-                  Cancel
+                  {tCommon('cancel')}
                 </Button>
                 <Button 
                   color="primary" 
@@ -296,10 +301,10 @@ export default function CreateIdentityClientPage() {
                   {createMutation.isPending ? (
                     <span className="flex items-center gap-2">
                       <LoadingIndicator size="sm" />
-                      Creating...
+                      {t('creating')}
                     </span>
                   ) : (
-                    'Create Client'
+                    t('createClient')
                   )}
                 </Button>
               </div>

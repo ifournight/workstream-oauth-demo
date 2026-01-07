@@ -2,6 +2,7 @@
 
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useEffect, useState, Suspense } from 'react'
+import { useTranslations } from 'next-intl'
 // Using a simple check icon or emoji
 import { Button } from '@/components/base/buttons/button'
 import { Card, CardContent } from '@/app/components/ui/card'
@@ -14,18 +15,20 @@ function CreateIdentityClientSuccessPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { setBreadcrumbs } = useBreadcrumbs()
+  const t = useTranslations('clients')
+  const tCommon = useTranslations('common')
   const [responseData, setResponseData] = useState<any>(null)
   const [rawResponse, setRawResponse] = useState<string>('')
 
   // Set breadcrumbs
   useEffect(() => {
     setBreadcrumbs([
-      { label: 'Clients', href: '/clients' },
-      { label: 'My OAuth Clients', href: '/identity-clients' },
-      { label: 'Success' },
+      { label: tCommon('clients'), href: '/clients' },
+      { label: t('myOAuthClients'), href: '/identity-clients' },
+      { label: t('success') },
     ])
     return () => setBreadcrumbs([])
-  }, [setBreadcrumbs])
+  }, [setBreadcrumbs, t, tCommon])
 
   useEffect(() => {
     const responseParam = searchParams.get('response')
@@ -48,21 +51,21 @@ function CreateIdentityClientSuccessPageContent() {
   function handleCopyJson() {
     if (rawResponse) {
       navigator.clipboard.writeText(rawResponse)
-      alert('JSON copied to clipboard!')
+      alert(t('jsonCopiedToClipboard'))
     }
   }
 
   function handleCopyClientId() {
     if (responseData?.client_id) {
       navigator.clipboard.writeText(responseData.client_id)
-      alert('Client ID copied to clipboard!')
+      alert(t('clientIdCopiedToClipboard'))
     }
   }
 
   function handleCopyClientSecret() {
     if (responseData?.client_secret) {
       navigator.clipboard.writeText(responseData.client_secret)
-      alert('Client Secret copied to clipboard!')
+      alert(t('clientSecretCopiedToClipboard'))
     }
   }
 
@@ -70,12 +73,12 @@ function CreateIdentityClientSuccessPageContent() {
     return (
       <div className="max-w-7xl">
         <PageHeader
-          title="Create Identity Client"
+          title={t('createIdentityClient')}
         />
         <Card>
           <CardContent>
             <div className="py-12">
-              <p className="text-center text-tertiary">No response data found.</p>
+              <p className="text-center text-tertiary">{t('noResponseDataFound')}</p>
             </div>
           </CardContent>
         </Card>
@@ -88,8 +91,8 @@ function CreateIdentityClientSuccessPageContent() {
   return (
     <div className="max-w-7xl">
       <PageHeader
-        title="Client Created Successfully"
-        description="Your OAuth client has been created. Please save the credentials below."
+        title={t('clientCreatedSuccessfully')}
+        description={t('clientCreatedSuccessfullyDescription')}
       />
 
       <Alert className="mb-6">
@@ -100,10 +103,9 @@ function CreateIdentityClientSuccessPageContent() {
             </svg>
           </div>
           <div>
-            <h3 className="font-semibold text-primary mb-1">Important: Save Your Credentials</h3>
+            <h3 className="font-semibold text-primary mb-1">{t('importantSaveCredentials')}</h3>
             <p className="text-sm text-tertiary">
-              The <strong>client_secret</strong> is only shown once. Make sure to copy and save it securely. 
-              You will not be able to retrieve it later.
+              {t('clientSecretWarning')}
             </p>
           </div>
         </div>
@@ -116,9 +118,9 @@ function CreateIdentityClientSuccessPageContent() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-tertiary mb-1">Client ID</p>
+                  <p className="text-sm text-tertiary mb-1">{tCommon('clientId')}</p>
                   <code className="text-sm font-mono bg-secondary px-2 py-1 rounded break-all">
-                    {responseData.client_id || responseData.id || 'N/A'}
+                    {responseData.client_id || responseData.id || tCommon('n/a')}
                   </code>
                 </div>
                 {responseData.client_id && (
@@ -128,7 +130,7 @@ function CreateIdentityClientSuccessPageContent() {
                     onClick={handleCopyClientId}
                     className="ml-2"
                   >
-                    Copy
+                    {tCommon('copy')}
                   </Button>
                 )}
               </div>
@@ -139,9 +141,9 @@ function CreateIdentityClientSuccessPageContent() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-tertiary mb-1">Client Secret</p>
+                  <p className="text-sm text-tertiary mb-1">{t('clientSecret')}</p>
                   <code className="text-sm font-mono bg-secondary px-2 py-1 rounded break-all">
-                    {responseData.client_secret || 'N/A'}
+                    {responseData.client_secret || tCommon('n/a')}
                   </code>
                 </div>
                 {responseData.client_secret && (
@@ -151,7 +153,7 @@ function CreateIdentityClientSuccessPageContent() {
                     onClick={handleCopyClientSecret}
                     className="ml-2"
                   >
-                    Copy
+                    {tCommon('copy')}
                   </Button>
                 )}
               </div>
@@ -163,13 +165,13 @@ function CreateIdentityClientSuccessPageContent() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-primary">Full Response JSON</h3>
+              <h3 className="text-lg font-semibold text-primary">{t('fullResponseJson')}</h3>
               <Button 
                 color="secondary" 
                 size="sm" 
                 onClick={handleCopyJson}
               >
-                Copy JSON
+                {t('copyJson')}
               </Button>
             </div>
             <pre className="bg-secondary p-4 rounded-lg overflow-x-auto text-sm font-mono">
@@ -184,13 +186,13 @@ function CreateIdentityClientSuccessPageContent() {
             color="secondary" 
             onClick={() => router.push('/identity-clients')}
           >
-            View All Clients
+            {t('viewAllClients')}
           </Button>
           <Button 
             color="primary" 
             onClick={() => router.push('/identity-clients')}
           >
-            Back to My OAuth Clients
+            {t('backToMyOAuthClients')}
           </Button>
         </div>
       </div>
@@ -199,10 +201,12 @@ function CreateIdentityClientSuccessPageContent() {
 }
 
 export default function CreateIdentityClientSuccessPage() {
+  const t = useTranslations('clients')
+  
   return (
     <Suspense fallback={
       <div className="max-w-7xl">
-        <PageHeader title="Create Identity Client" />
+        <PageHeader title={t('createIdentityClient')} />
         <Card>
           <CardContent>
             <div className="flex items-center justify-center py-12">
