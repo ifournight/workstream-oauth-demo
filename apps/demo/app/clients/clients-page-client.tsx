@@ -63,28 +63,35 @@ function ClientsContent() {
 
   // Fetch clients using generated React Query hook
   const clientsQuery = useListOAuth2Clients(undefined, {
-    query: {
-      onSuccess: (data) => {
-        const clients = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : [])
-        if (clients.length > 0) {
-          toast.success(t('clientsLoaded'), {
-            description: t('successfullyLoadedClients', { count: clients.length }),
-          })
-        }
-      },
-      onError: (err: any) => {
-        const errorMessage = err?.message || 'Failed to load clients'
-        // Check for CORS errors
-        if (errorMessage.includes('CORS') || errorMessage.includes('Failed to fetch')) {
-          toast.error('CORS Error', {
-            description: 'Unable to connect to Hydra Admin API. Please check CORS configuration.',
-          })
-        }
-      },
-    },
+    query: {},
   })
   
   const { data: clientsData, isLoading: loading, error } = clientsQuery
+
+  // Handle success using useEffect (React Query v5 removed onSuccess from query options)
+  useEffect(() => {
+    if (clientsData) {
+      const clients = Array.isArray(clientsData?.data) ? clientsData.data : (Array.isArray(clientsData) ? clientsData : [])
+      if (clients.length > 0) {
+        toast.success(t('clientsLoaded'), {
+          description: t('successfullyLoadedClients', { count: clients.length }),
+        })
+      }
+    }
+  }, [clientsData, t])
+
+  // Handle errors using useEffect (React Query v5 removed onError from query options)
+  useEffect(() => {
+    if (error) {
+      const errorMessage = (error as any)?.message || 'Failed to load clients'
+      // Check for CORS errors
+      if (errorMessage.includes('CORS') || errorMessage.includes('Failed to fetch')) {
+        toast.error('CORS Error', {
+          description: 'Unable to connect to Hydra Admin API. Please check CORS configuration.',
+        })
+      }
+    }
+  }, [error])
 
   // Transform data to add id field for table rows
   // useListOAuth2Clients returns ListOAuth2ClientsResponse which is OAuth2Client[]

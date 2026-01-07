@@ -139,18 +139,22 @@ export default function EditClientPage() {
   const { data: clientResponse, isLoading: loadingClient, error: clientError } = useGetOAuth2Client(clientId, {
     query: {
       enabled: !!clientId,
-      onError: (err: any) => {
-        const errorMessage = err?.message || 'Failed to load client'
-        if (errorMessage.includes('CORS') || errorMessage.includes('Failed to fetch')) {
-          toast.error('CORS Error', {
-            description: 'Unable to connect to Hydra Admin API. Please check CORS configuration.',
-          })
-        }
-      },
     },
   })
   
   const client = clientResponse?.data || clientResponse
+
+  // Handle errors using useEffect (React Query v5 removed onError from query options)
+  useEffect(() => {
+    if (clientError) {
+      const errorMessage = (clientError as any)?.message || 'Failed to load client'
+      if (errorMessage.includes('CORS') || errorMessage.includes('Failed to fetch')) {
+        toast.error('CORS Error', {
+          description: 'Unable to connect to Hydra Admin API. Please check CORS configuration.',
+        })
+      }
+    }
+  }, [clientError])
 
   // Populate form when client data is loaded
   useEffect(() => {
