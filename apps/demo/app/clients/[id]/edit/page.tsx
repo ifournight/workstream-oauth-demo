@@ -142,7 +142,10 @@ export default function EditClientPage() {
     },
   })
   
-  const client = clientResponse?.data || clientResponse
+  // Extract client data from response (handle both AxiosResponse and direct OAuth2Client)
+  const client: OAuth2Client | undefined = clientResponse 
+    ? ('data' in clientResponse && clientResponse.data ? clientResponse.data : (clientResponse as OAuth2Client))
+    : undefined
 
   // Handle errors using useEffect (React Query v5 removed onError from query options)
   useEffect(() => {
