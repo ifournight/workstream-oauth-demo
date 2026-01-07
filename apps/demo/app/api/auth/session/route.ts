@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
 
     // Check JWT format (should have three dot-separated parts)
     const parts = trimmedToken.split('.')
-    if (parts.length !== 3 || parts.some(part => !part || part.length === 0)) {
+    if (parts.length !== 3 || parts.some((part: string) => !part || part.length === 0)) {
       return NextResponse.json(
         { error: 'Invalid token format' },
         { status: 400 }
