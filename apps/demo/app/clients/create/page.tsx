@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { Building05 } from '@untitledui/icons'
 import { Heading as AriaHeading } from 'react-aria-components'
@@ -18,6 +18,8 @@ import { PageHeader } from '@/app/components/page-header'
 import { useBreadcrumbs } from '@/lib/breadcrumbs'
 import { toast } from 'sonner'
 import { LoadingIndicator } from '@/components/application/loading-indicator/loading-indicator'
+import { useCreateOAuth2Client, getListOAuth2ClientsQueryKey } from '@/generated/hydra-api-browser'
+import type { OAuth2Client } from '@/generated/hydra-api-browser/models'
 
 interface ClientFormData {
   client_name: string
@@ -183,40 +185,35 @@ export default function CreateClientPage() {
     return () => setBreadcrumbs([])
   }, [setBreadcrumbs, t, tCommon])
 
-  const createMutation = useMutation({
-    mutationFn: async (clientData: any) => {
-      const response = await fetch('/api/clients', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(clientData),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create client')
-      }
-
-      return data
-    },
-    onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ['clients'] })
-      if (data.client_secret) {
-        toast.success(t('clientCreated'), {
-          description: t('clientSecretSaved', { secret: data.client_secret }),
-          duration: 10000,
-        })
-      } else {
-        toast.success(t('clientCreated'), {
-          description: t('clientSuccessfullyCreated'),
-        })
-      }
-      router.push('/clients')
-    },
-    onError: (err: Error) => {
-      toast.error(t('failedToCreateClient'), {
-        description: err.message,
-      })
+  const createMutation = useCreateOAuth2Client({
+    mutation: {
+      onSuccess: (data) => {
+        // Invalidate the list query to refresh the data
+        queryClient.invalidateQueries({ queryKey: getListOAuth2ClientsQueryKey() })
+        if (data.data?.client_secret) {
+          toast.success(t('clientCreated'), {
+            description: t('clientSecretSaved', { secret: data.data.client_secret }),
+            duration: 10000,
+          })
+        } else {
+          toast.success(t('clientCreated'), {
+            description: t('clientSuccessfullyCreated'),
+          })
+        }
+        router.push('/clients')
+      },
+      onError: (err: any) => {
+        const errorMessage = err?.message || 'Failed to create client'
+        if (errorMessage.includes('CORS') || errorMessage.includes('Failed to fetch')) {
+          toast.error('CORS Error', {
+            description: 'Unable to connect to Hydra Admin API. Please check CORS configuration.',
+          })
+        } else {
+          toast.error(t('failedToCreateClient'), {
+            description: errorMessage,
+          })
+        }
+      },
     },
   })
 
@@ -292,7 +289,7 @@ export default function CreateClientPage() {
       }
     }
 
-    createMutation.mutate(clientData)
+    createMutation.mutate({ data: clientData as OAuth2Client })
   }
 
   function handleGrantTypeToggle(grantType: string) {

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { HydrationBoundary, useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { HydrationBoundary, useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/base/buttons/button'
 import { Card, CardContent } from '@/app/components/ui/card'
@@ -13,15 +13,15 @@ import { PageHeader } from '@/app/components/page-header'
 import { useBreadcrumbs } from '@/lib/breadcrumbs'
 import { toast } from 'sonner'
 import type { DehydratedState } from '@tanstack/react-query'
+import { 
+  useListOAuth2Clients,
+  useDeleteOAuth2Client
+} from '@/generated/hydra-api-browser'
+import type { OAuth2Client } from '@/generated/hydra-api-browser/models'
 
-interface Client {
-  client_id?: string
-  id?: string
-  client_name?: string
-  name?: string
-  grant_types?: string[]
-  scope?: string
-  redirect_uris?: string[]
+// Use the generated OAuth2Client type
+type Client = OAuth2Client & {
+  id?: string // Add id for table row key
 }
 
 interface ClientsPageClientProps {
@@ -61,58 +61,68 @@ function ClientsContent() {
     { id: 'actions', name: tCommon('actions') },
   ] as const
 
-  // Fetch clients - this will use the prefetched data from SSR
-  const { data: clientsData, isLoading: loading, error } = useQuery({
-    queryKey: ['clients'],
-    queryFn: async () => {
-      const response = await fetch('/api/clients')
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to load clients')
-      }
-      const data = await response.json()
-      const clientsWithId = Array.isArray(data) 
-        ? data.map((client: Client, index: number) => ({
-            ...client,
-            // Ensure every client has a stable id for react-aria-components
-            id: client.client_id || client.id || `temp-client-${index}`,
-          }))
-        : []
-      
-      if (clientsWithId.length > 0) {
-        toast.success(t('clientsLoaded'), {
-          description: t('successfullyLoadedClients', { count: clientsWithId.length }),
-        })
-      }
-      
-      return clientsWithId
+  // Fetch clients using generated React Query hook
+  const clientsQuery = useListOAuth2Clients(undefined, {
+    query: {
+      onSuccess: (data) => {
+        const clients = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : [])
+        if (clients.length > 0) {
+          toast.success(t('clientsLoaded'), {
+            description: t('successfullyLoadedClients', { count: clients.length }),
+          })
+        }
+      },
+      onError: (err: any) => {
+        const errorMessage = err?.message || 'Failed to load clients'
+        // Check for CORS errors
+        if (errorMessage.includes('CORS') || errorMessage.includes('Failed to fetch')) {
+          toast.error('CORS Error', {
+            description: 'Unable to connect to Hydra Admin API. Please check CORS configuration.',
+          })
+        }
+      },
     },
   })
+  
+  const { data: clientsData, isLoading: loading, error } = clientsQuery
 
-  const clients = clientsData || []
+  // Transform data to add id field for table rows
+  // useListOAuth2Clients returns ListOAuth2ClientsResponse which is OAuth2Client[]
+  const clients: Client[] = Array.isArray(clientsData?.data) 
+    ? clientsData.data.map((client, index) => ({
+        ...client,
+        // Ensure every client has a stable id for react-aria-components
+        id: client.client_id || `temp-client-${index}`,
+      }))
+    : Array.isArray(clientsData)
+    ? clientsData.map((client, index) => ({
+        ...client,
+        id: client.client_id || `temp-client-${index}`,
+      }))
+    : []
 
-  // Delete mutation
-  const deleteMutation = useMutation({
-    mutationFn: async (clientId: string) => {
-      const response = await fetch(`/api/clients/${clientId}`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to delete client')
-      }
-    },
-    onSuccess: (_: void, clientId: string) => {
-      queryClient.invalidateQueries({ queryKey: ['clients'] })
-      toast.success(t('clientDeleted'), {
-        description: t('clientSuccessfullyDeleted', { clientId }),
-      })
-    },
-    onError: (err: Error) => {
-      toast.error(t('failedToDeleteClient'), {
-        description: err.message,
-      })
+  // Delete mutation using generated React Query hook
+  const deleteMutation = useDeleteOAuth2Client({
+    mutation: {
+      onSuccess: (_: void, variables) => {
+        // Invalidate the list query to refresh the data
+        queryClient.invalidateQueries({ queryKey: clientsQuery.queryKey })
+        toast.success(t('clientDeleted'), {
+          description: t('clientSuccessfullyDeleted', { clientId: variables.id }),
+        })
+      },
+      onError: (err: any) => {
+        const errorMessage = err?.message || 'Failed to delete client'
+        if (errorMessage.includes('CORS') || errorMessage.includes('Failed to fetch')) {
+          toast.error('CORS Error', {
+            description: 'Unable to connect to Hydra Admin API. Please check CORS configuration.',
+          })
+        } else {
+          toast.error(t('failedToDeleteClient'), {
+            description: errorMessage,
+          })
+        }
+      },
     },
   })
 
@@ -120,7 +130,7 @@ function ClientsContent() {
     if (!confirm(t('areYouSureDelete', { clientId }))) {
       return
     }
-    deleteMutation.mutate(clientId)
+    deleteMutation.mutate({ id: clientId })
   }
 
   function handleEdit(client: Client) {

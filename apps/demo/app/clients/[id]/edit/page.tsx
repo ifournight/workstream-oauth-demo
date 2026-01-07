@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { Building05 } from '@untitledui/icons'
 import { Heading as AriaHeading } from 'react-aria-components'
 import { Button } from '@/components/base/buttons/button'
@@ -17,6 +17,13 @@ import { PageHeader } from '@/app/components/page-header'
 import { useBreadcrumbs } from '@/lib/breadcrumbs'
 import { toast } from 'sonner'
 import { LoadingIndicator } from '@/components/application/loading-indicator/loading-indicator'
+import { 
+  useGetOAuth2Client,
+  useSetOAuth2Client,
+  getListOAuth2ClientsQueryKey,
+  getGetOAuth2ClientQueryKey
+} from '@/generated/hydra-api-browser'
+import type { OAuth2Client } from '@/generated/hydra-api-browser/models'
 
 interface ClientFormData {
   client_name: string
@@ -128,19 +135,22 @@ export default function EditClientPage() {
     metadata: '',
   })
 
-  // Fetch client data
-  const { data: client, isLoading: loadingClient } = useQuery({
-    queryKey: ['client', clientId],
-    queryFn: async () => {
-      const response = await fetch(`/api/clients/${clientId}`)
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to load client')
-      }
-      return response.json()
+  // Fetch client data using generated React Query hook
+  const { data: clientResponse, isLoading: loadingClient, error: clientError } = useGetOAuth2Client(clientId, {
+    query: {
+      enabled: !!clientId,
+      onError: (err: any) => {
+        const errorMessage = err?.message || 'Failed to load client'
+        if (errorMessage.includes('CORS') || errorMessage.includes('Failed to fetch')) {
+          toast.error('CORS Error', {
+            description: 'Unable to connect to Hydra Admin API. Please check CORS configuration.',
+          })
+        }
+      },
     },
-    enabled: !!clientId,
   })
+  
+  const client = clientResponse?.data || clientResponse
 
   // Populate form when client data is loaded
   useEffect(() => {
@@ -183,34 +193,29 @@ export default function EditClientPage() {
     return () => setBreadcrumbs([])
   }, [setBreadcrumbs, client])
 
-  const updateMutation = useMutation({
-    mutationFn: async (clientData: any) => {
-      const response = await fetch(`/api/clients/${clientId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(clientData),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to update client')
-      }
-
-      return data
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clients'] })
-      queryClient.invalidateQueries({ queryKey: ['client', clientId] })
-      toast.success('Client Updated', {
-        description: 'Client has been successfully updated.',
-      })
-      router.push('/clients')
-    },
-    onError: (err: Error) => {
-      toast.error('Failed to Update Client', {
-        description: err.message,
-      })
+  const updateMutation = useSetOAuth2Client({
+    mutation: {
+      onSuccess: () => {
+        // Invalidate queries to refresh the data
+        queryClient.invalidateQueries({ queryKey: getListOAuth2ClientsQueryKey() })
+        queryClient.invalidateQueries({ queryKey: getGetOAuth2ClientQueryKey(clientId) })
+        toast.success('Client Updated', {
+          description: 'Client has been successfully updated.',
+        })
+        router.push('/clients')
+      },
+      onError: (err: any) => {
+        const errorMessage = err?.message || 'Failed to update client'
+        if (errorMessage.includes('CORS') || errorMessage.includes('Failed to fetch')) {
+          toast.error('CORS Error', {
+            description: 'Unable to connect to Hydra Admin API. Please check CORS configuration.',
+          })
+        } else {
+          toast.error('Failed to Update Client', {
+            description: errorMessage,
+          })
+        }
+      },
     },
   })
 
@@ -286,7 +291,7 @@ export default function EditClientPage() {
       }
     }
 
-    updateMutation.mutate(clientData)
+    updateMutation.mutate({ id: clientId, data: clientData as OAuth2Client })
   }
 
   function handleGrantTypeToggle(grantType: string) {
