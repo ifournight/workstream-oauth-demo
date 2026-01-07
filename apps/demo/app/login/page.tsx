@@ -5,16 +5,23 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/base/buttons/button'
 import { Input } from '@/components/base/input/input'
+import { TextArea } from '@/components/base/textarea/textarea'
 import { Alert } from '@/components/ui/alert'
 import { toast } from 'sonner'
-import { Key01, User01 } from '@untitledui/icons'
+import { Key01, User01, ChevronDown } from '@untitledui/icons'
+import { useAuth } from '@/hooks/use-auth'
 
 function LoginPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const t = useTranslations()
+  const { refresh } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showManualToken, setShowManualToken] = useState(false)
+  const [manualToken, setManualToken] = useState('')
+  const [isTokenLoading, setIsTokenLoading] = useState(false)
+  const [tokenError, setTokenError] = useState<string | null>(null)
 
   // Get error from URL params (from OAuth callback)
   useEffect(() => {
@@ -65,6 +72,82 @@ function LoginPageContent() {
         description: errorMessage,
       })
       setIsLoading(false)
+    }
+  }
+
+  // Basic JWT format validation (checks for three dot-separated parts)
+  const isValidTokenFormat = (token: string): boolean => {
+    const trimmed = token.trim()
+    if (!trimmed) return false
+    // JWT tokens have three parts separated by dots: header.payload.signature
+    const parts = trimmed.split('.')
+    return parts.length === 3 && parts.every(part => part.length > 0)
+  }
+
+  const handleManualTokenLogin = async () => {
+    setIsTokenLoading(true)
+    setTokenError(null)
+
+    try {
+      const trimmedToken = manualToken.trim()
+      
+      if (!trimmedToken) {
+        setTokenError(t('auth.invalidToken'))
+        toast.error(t('auth.tokenLoginFailed'), {
+          description: t('auth.invalidToken'),
+        })
+        setIsTokenLoading(false)
+        return
+      }
+
+      // Basic format validation
+      if (!isValidTokenFormat(trimmedToken)) {
+        setTokenError(t('auth.invalidToken'))
+        toast.error(t('auth.tokenLoginFailed'), {
+          description: t('auth.invalidToken'),
+        })
+        setIsTokenLoading(false)
+        return
+      }
+
+      // Call session API to create session
+      const response = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          accessToken: trimmedToken,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to create session' }))
+        const errorMessage = errorData.error || t('auth.tokenLoginFailed')
+        setTokenError(errorMessage)
+        toast.error(t('auth.tokenLoginFailed'), {
+          description: errorMessage,
+        })
+        setIsTokenLoading(false)
+        return
+      }
+
+      // Success - refresh auth state and redirect
+      toast.success(t('auth.tokenLoginSuccess'))
+      
+      // Refresh authentication state
+      await refresh()
+      
+      // Redirect to return URL or home
+      const returnUrl = searchParams.get('return_url') || '/'
+      router.push(returnUrl)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : t('auth.tokenLoginFailed')
+      setTokenError(errorMessage)
+      toast.error(t('auth.tokenLoginFailed'), {
+        description: errorMessage,
+      })
+      setIsTokenLoading(false)
     }
   }
 
@@ -130,6 +213,46 @@ function LoginPageContent() {
             <p>
               {t('auth.termsAgreement')}
             </p>
+          </div>
+
+          {/* Manual Token Login Section - Subtle and Collapsible */}
+          <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+            <button
+              type="button"
+              onClick={() => setShowManualToken(!showManualToken)}
+              className="w-full flex items-center justify-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+            >
+              <ChevronDown className={`w-3 h-3 transition-transform ${showManualToken ? 'rotate-180' : ''}`} />
+              {showManualToken ? t('auth.hideManualToken') : t('auth.showManualToken')}
+            </button>
+
+            {showManualToken && (
+              <div className="mt-4 space-y-3">
+                <TextArea
+                  value={manualToken}
+                  onChange={(value) => {
+                    setManualToken(value || '')
+                    setTokenError(null)
+                  }}
+                  placeholder={t('auth.tokenPlaceholder')}
+                  rows={3}
+                  isInvalid={!!tokenError}
+                />
+                {tokenError && (
+                  <p className="text-xs text-red-600 dark:text-red-400">{tokenError}</p>
+                )}
+                <Button
+                  color="secondary"
+                  size="sm"
+                  onClick={handleManualTokenLogin}
+                  isLoading={isTokenLoading}
+                  isDisabled={isTokenLoading || !manualToken.trim()}
+                  className="w-full"
+                >
+                  {t('auth.useTokenLogin')}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>

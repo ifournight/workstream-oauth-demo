@@ -39,7 +39,14 @@
     "welcome": "Welcome! Identity ID: {identityId}",
     "authenticationRequired": "Authentication Required",
     "pleaseLogIn": "Please log in to create clients.",
-    "pleaseLogInToView": "Please log in to view and manage your OAuth clients."
+    "pleaseLogInToView": "Please log in to view and manage your OAuth clients.",
+    "showManualToken": "Manual Token Login",
+    "hideManualToken": "Hide Manual Token Login",
+    "tokenPlaceholder": "Paste your access token here...",
+    "useTokenLogin": "Use Token to Login",
+    "tokenLoginSuccess": "Token login successful",
+    "tokenLoginFailed": "Token login failed",
+    "invalidToken": "Invalid token format"
   },
   "clients": {
     "globalClients": "Global Clients",

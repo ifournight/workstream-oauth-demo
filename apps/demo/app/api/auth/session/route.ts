@@ -106,11 +106,58 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // Validate token format (basic JWT format check)
+    const trimmedToken = accessToken.trim()
+    if (!trimmedToken) {
+      return NextResponse.json(
+        { error: 'Invalid token format' },
+        { status: 400 }
+      )
+    }
+
+    // Check JWT format (should have three dot-separated parts)
+    const parts = trimmedToken.split('.')
+    if (parts.length !== 3 || parts.some(part => !part || part.length === 0)) {
+      return NextResponse.json(
+        { error: 'Invalid token format' },
+        { status: 400 }
+      )
+    }
+
+    // Try to decode token to verify it's a valid JWT
+    try {
+      const decoded = decodeAccessToken(trimmedToken)
+      
+      // Check if token is expired
+      if (isTokenExpired(trimmedToken)) {
+        return NextResponse.json(
+          { error: 'Token has expired' },
+          { status: 400 }
+        )
+      }
+    } catch (decodeError) {
+      // If we can't decode the token, it's invalid
+      return NextResponse.json(
+        { error: 'Invalid token format' },
+        { status: 400 }
+      )
+    }
     
     const cookieStore = await import('next/headers').then(m => m.cookies())
-    await createSession(cookieStore, accessToken, refreshToken, expiresIn)
     
-    const identityId = getIdentityIdFromToken(accessToken)
+    // Calculate expiresIn from token if not provided
+    let tokenExpiresIn = expiresIn
+    if (!tokenExpiresIn) {
+      const expiration = getTokenExpiration(trimmedToken)
+      if (expiration) {
+        tokenExpiresIn = Math.max(0, Math.floor((expiration - Date.now()) / 1000))
+      }
+    }
+    
+    await createSession(cookieStore, trimmedToken, refreshToken, tokenExpiresIn)
+    
+    const identityId = getIdentityIdFromToken(trimmedToken)
     
     return NextResponse.json({
       success: true,
@@ -120,6 +167,18 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error creating session:', error)
+    
+    // Provide more specific error messages
+    if (error instanceof Error) {
+      // If it's a known validation error, return it
+      if (error.message.includes('Invalid') || error.message.includes('expired')) {
+        return NextResponse.json(
+          { error: error.message },
+          { status: 400 }
+        )
+      }
+    }
+    
     return NextResponse.json(
       { error: 'Failed to create session' },
       { status: 500 }
