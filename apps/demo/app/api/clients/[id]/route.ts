@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 // Import generated API functions from Orval
 // Note: Run `bun run generate:api` first to generate these functions
 import { getOryHydraAPI } from '@/generated/hydra-api'
-import { checkGlobalClientsAdminAccess } from '@/lib/access-control'
-import { cookies } from 'next/headers'
 
 // GET /api/clients/:id - Get a single client
 export async function GET(
@@ -11,17 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Check access control
-    const cookieStore = await cookies()
-    const hasAccess = await checkGlobalClientsAdminAccess(cookieStore)
-    
-    if (!hasAccess) {
-      return NextResponse.json(
-        { error: 'Forbidden', error_description: 'You do not have permission to access global clients' },
-        { status: 403 }
-      )
-    }
-    
+    // Access control removed - allow public access
     const { id: clientId } = await params
     const api = getOryHydraAPI()
     const response = await api.getOAuth2Client(clientId)
@@ -57,17 +45,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Check access control
-    const cookieStore = await cookies()
-    const hasAccess = await checkGlobalClientsAdminAccess(cookieStore)
-    
-    if (!hasAccess) {
-      return NextResponse.json(
-        { error: 'Forbidden', error_description: 'You do not have permission to update global clients' },
-        { status: 403 }
-      )
-    }
-    
+    // Access control removed - allow public access
     const { id: clientId } = await params
     const clientData = await request.json()
     
@@ -108,17 +86,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Check access control
-    const cookieStore = await cookies()
-    const hasAccess = await checkGlobalClientsAdminAccess(cookieStore)
-    
-    if (!hasAccess) {
-      return NextResponse.json(
-        { error: 'Forbidden', error_description: 'You do not have permission to delete global clients' },
-        { status: 403 }
-      )
-    }
-    
+    // Access control removed - allow public access
     const { id: clientId } = await params
     
     // Import generated API functions from Orval
