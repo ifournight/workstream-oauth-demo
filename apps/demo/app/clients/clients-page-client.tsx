@@ -111,7 +111,7 @@ function ClientsContent() {
   // Delete mutation using generated React Query hook
   const deleteMutation = useDeleteOAuth2Client({
     mutation: {
-      onSuccess: (_: void, variables) => {
+      onSuccess: (data, variables) => {
         // Invalidate the list query to refresh the data
         queryClient.invalidateQueries({ queryKey: clientsQuery.queryKey })
         toast.success(t('clientDeleted'), {
@@ -212,7 +212,7 @@ function ClientsContent() {
             >
               {(client: Client) => {
                 const clientId = client.client_id || client.id || tCommon('n/a')
-                const clientName = client.client_name || client.name || tCommon('n/a')
+                const clientName = client.client_name || tCommon('n/a')
                 const grantTypes = (client.grant_types || []).join(', ') || tCommon('n/a')
                 const scopes = client.scope || tCommon('n/a')
 

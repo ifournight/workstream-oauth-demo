@@ -246,7 +246,7 @@ function IdentityClientsContent({ identityId }: { identityId: string | null }) {
             >
               {(client: Client) => {
                 const clientId = client.client_id || client.id || tCommon('n/a')
-                const clientName = client.client_name || client.name || tCommon('n/a')
+                const clientName = client.client_name || tCommon('n/a')
                 const grantTypes = (client.grant_types || []).join(', ') || tCommon('n/a')
                 const scopes = client.scope || tCommon('n/a')
 

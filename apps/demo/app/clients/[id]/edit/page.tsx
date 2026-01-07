@@ -195,7 +195,7 @@ export default function EditClientPage() {
   useEffect(() => {
     setBreadcrumbs([
       { label: 'Clients', href: '/clients' },
-      { label: client?.client_name || client?.name || 'Edit Client' },
+      { label: client?.client_name || 'Edit Client' },
     ])
     return () => setBreadcrumbs([])
   }, [setBreadcrumbs, client])
@@ -358,7 +358,7 @@ export default function EditClientPage() {
     <div className="max-w-7xl">
       <PageHeader
         title="Edit Client"
-        description={`Edit OAuth client: ${client.client_name || client.name || clientId}`}
+        description={`Edit OAuth client: ${client.client_name || clientId}`}
       />
 
       <Card>
@@ -381,7 +381,7 @@ export default function EditClientPage() {
               {/* Client ID (read-only) */}
               <section className="flex items-start gap-8">
                 <Label className="w-40 max-sm:hidden">Client ID</Label>
-                <TextField name="client_id" className="flex-1" isDisabled value={client.client_id || client.id || clientId}>
+                <TextField name="client_id" className="flex-1" isDisabled value={client.client_id || clientId}>
                   <Label className="sm:hidden">Client ID</Label>
                   <InputBase size="md" />
                 </TextField>

@@ -143,7 +143,7 @@ function OAuthAppsTokenContent({ serverIdentityId }: { serverIdentityId: string 
 
   const clientOptions = clients.map((client: Client) => ({
     id: client.client_id || client.id || '',
-    label: client.client_name || client.name || client.client_id || client.id || tCommon('n/a'),
+    label: client.client_name || client.client_id || client.id || tCommon('n/a'),
   }))
 
   const selectedClient = clients.find(

@@ -252,14 +252,16 @@ TableRow.displayName = "TableRow";
 
 interface TableCellProps extends AriaCellProps, Omit<TdHTMLAttributes<HTMLTableCellElement>, "children" | "className" | "style" | "id"> {
     ref?: Ref<HTMLTableCellElement>;
+    isRowHeader?: boolean;
 }
 
-const TableCell = ({ className, children, ...props }: TableCellProps) => {
+const TableCell = ({ className, children, isRowHeader, ...props }: TableCellProps) => {
     const { size } = useContext(TableContext);
     const { selectionBehavior } = useTableOptions();
 
     return (
         <AriaCell
+            {...(isRowHeader ? { isRowHeader: true } : {})}
             {...props}
             className={(state) =>
                 cx(
