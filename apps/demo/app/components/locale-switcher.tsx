@@ -16,7 +16,7 @@ export function LocaleSwitcher({ noBorder = false }: LocaleSwitcherProps) {
 
   const localeOptions = [
     { id: 'en', label: 'English', icon: Globe01 },
-    { id: 'zh-CN', label: '简体中文', icon: Globe01 },
+    { id: 'zh-CN', label: '中文', icon: Globe01 },
   ]
 
   function handleLocaleChange(newLocale: string | null) {

@@ -34,3 +34,4 @@ coverage/
 *.tsbuildinfo
 
 .vercel
+apps/demo/.env.prod
