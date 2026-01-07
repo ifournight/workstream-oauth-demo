@@ -163,7 +163,7 @@ export default function EditClientPage() {
   useEffect(() => {
     if (client) {
       setFormData({
-        client_name: client.client_name || client.name || '',
+        client_name: client.client_name || '',
         scope: client.scope || 'openid offline',
         redirect_uris: Array.isArray(client.redirect_uris) ? client.redirect_uris.join('\n') : '',
         grant_types: Array.isArray(client.grant_types) ? client.grant_types : ['authorization_code'],
